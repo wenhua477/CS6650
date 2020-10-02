@@ -39,7 +39,6 @@ public class ClientPart1 {
 
     int numThreadForPhase1 = maxThreads / 4;
     CountDownLatch phase1LatchNinetyPct = new CountDownLatch(numThreadForPhase1 * 90 / 100);
-    System.out.println(numThreadForPhase1 * 90 / 100);
     CountDownLatch phase1LatchAll = new CountDownLatch(numThreadForPhase1);
     int numOfSkierIdsPerThread = numSkiers / numThreadForPhase1;
     int skierIdStart = 0;
