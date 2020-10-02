@@ -7,8 +7,8 @@ public class ClientPart1 {
   private static final int NUM_POST_PHASE_1 = 100;
   private static final int NUM_GET_PHASE_2 = 5;
   private static final int NUM_POST_PHASE_2 = 100;
-  private static final int NUM_GET_PHASE_3 = 5;
-  private static final int NUM_POST_PHASE_3 = 10;
+  private static final int NUM_GET_PHASE_3 = 10;
+  private static final int NUM_POST_PHASE_3 = 100;
 
   private static final int START_TIME_PHASE_1 = 1;
   private static final int END_TIME_PHASE_1 = 90;
@@ -29,9 +29,9 @@ public class ClientPart1 {
   public static void main(String[] args) throws InterruptedException {
     // read them from args
     int maxThreads = 256;
-    int numSkiers = 50000;
+    int numSkiers = 20000;
     int numLifts = 40;
-    String skiDayId = "1";
+    String skiDayId = "344";
     String resortID = "SilverMt";
 //    String serverAddr = "http://ec2-18-208-192-60.compute-1.amazonaws.com:8080/a1_server_war/skiers";
     String serverAddr = "http://localhost:8080/CS6650_A1_Server_war_exploded/skiers";
@@ -114,12 +114,13 @@ public class ClientPart1 {
     long endTimeInMillSec = System.currentTimeMillis();
     int numOfSuccess = sharedRequestCountAtomic.numSuccessAtomic.get();
     int numOfFailure = sharedRequestCountAtomic.numFailureAtomic.get();
-    long totalTimeInSec = (endTimeInMillSec - startTimeInMillSec) / 1000;
+    double totalTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
     double throughPut =
         (numOfSuccess + numOfFailure) / (totalTimeInSec * 1.0);
     System.out.println(String.format("Number of successful requests: %s \n"
         + "number of failed requests: %s \n"
-        + "total run time (wall time): %s \n"
-        + "throughput: %s.", numOfSuccess, numOfFailure, totalTimeInSec, throughPut));
+        + "total requests: %s \n"
+        + "total run time in seconds (wall time): %s \n"
+        + "throughput: %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess, totalTimeInSec, throughPut));
   }
 }
