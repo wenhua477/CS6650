@@ -28,7 +28,7 @@ public class ClientPart1 {
 
   public static void main(String[] args) throws InterruptedException {
     // read them from args
-    int maxThreads = 256;
+    int maxThreads = 32;
     int numSkiers = 20000;
     int numLifts = 40;
     String skiDayId = "344";
@@ -54,7 +54,7 @@ public class ClientPart1 {
       } else {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
-      Runnable th = new Task(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_1,
+      Runnable th = new TaskForClientPart1(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_1,
           END_TIME_PHASE_1,
           resortID, skiDayId, NUM_POST_PHASE_1, NUM_GET_PHASE_1, phase1LatchNinetyPct,
           phase1LatchAll, serverAddr);
@@ -78,7 +78,7 @@ public class ClientPart1 {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
 
-      Runnable th = new Task(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_2,
+      Runnable th = new TaskForClientPart1(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_2,
           END_TIME_PHASE_2,
           resortID, skiDayId, NUM_POST_PHASE_2, NUM_GET_PHASE_2, phase2LatchNinetyPct,
           phase2LatchAll, serverAddr);
@@ -100,7 +100,7 @@ public class ClientPart1 {
       } else {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
-      Runnable th = new Task(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_3,
+      Runnable th = new TaskForClientPart1(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_3,
           END_TIME_PHASE_3,
           resortID, skiDayId, NUM_POST_PHASE_3, NUM_GET_PHASE_3, null,
           phase3LatchAll, serverAddr);

@@ -4,7 +4,7 @@ import io.swagger.client.api.SkiersApi;
 import io.swagger.client.model.LiftRide;
 import java.util.concurrent.CountDownLatch;
 
-public class Task implements Runnable{
+public class TaskForClientPart1 implements Runnable{
   protected int skierIdStart;
   protected int skierIdEnd;
   protected int liftIdRange;
@@ -18,7 +18,7 @@ public class Task implements Runnable{
   protected CountDownLatch totalLatch;
   private String address;
 
-  public Task(int skierIdStart, int skierIdEnd, int liftIdRange, int timeStart, int timeEnd,
+  public TaskForClientPart1(int skierIdStart, int skierIdEnd, int liftIdRange, int timeStart, int timeEnd,
       String resortId, String skiDayNumber, int numPost, int numGet,
       CountDownLatch ninetyPctLatch, CountDownLatch totalLatch, String address) {
     this.skierIdStart = skierIdStart;
@@ -93,14 +93,14 @@ public class Task implements Runnable{
     }
 
     int code = apiResponse.getStatusCode();
-    if (code == 201) {
+    if (code == 201 || code == 200) {
       return true;
     }
     if (code / 100 == 4 || code / 100 == 5) {
       // TODO: log the error using log4j.
       return false;
     }
-
+    System.out.println(code);
     return false;
   }
 
@@ -121,7 +121,7 @@ public class Task implements Runnable{
     }
 
     int code = apiResponse.getStatusCode();
-    if (code == 200) {
+    if (code == 200 || code == 201) {
       return true;
     }
     if (code / 100 == 4 || code / 100 == 5) {
@@ -151,18 +151,19 @@ public class Task implements Runnable{
     totalLatch.countDown();
   }
 
-  public  String getRandomLiftId(int range) {
-    // TODO:
-    return "";
+  private String getRandomLiftId(int range) {
+    return String.valueOf(getRandomNumber(0, range));
   }
 
-  public  String getRandomSkierId(int start, int end) {
-    // TODO
-    return "";
+  private String getRandomSkierId(int start, int end) {
+    return String.valueOf(getRandomNumber(start, end));
   }
 
-  public  String getRandomTime(int start, int end) {
-    //TODO
-    return "";
+  private String getRandomTime(int start, int end) {
+    return String.valueOf(getRandomNumber(start, end));
+  }
+
+  private int getRandomNumber(int min, int max) {
+    return (int) ((Math.random() * (max - min)) + min);
   }
 }
