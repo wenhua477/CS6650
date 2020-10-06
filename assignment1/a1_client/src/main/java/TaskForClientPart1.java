@@ -5,17 +5,17 @@ import io.swagger.client.model.LiftRide;
 import java.util.concurrent.CountDownLatch;
 
 public class TaskForClientPart1 implements Runnable{
-  protected int skierIdStart;
-  protected int skierIdEnd;
-  protected int liftIdRange;
-  protected int timeStart;
-  protected int timeEnd;
-  protected String resortId;
-  protected String skiDayNumber;
-  protected int numPost;
-  protected int numGet;
-  protected CountDownLatch ninetyPctLatch;
-  protected CountDownLatch totalLatch;
+  private int skierIdStart;
+  private int skierIdEnd;
+  private int liftIdRange;
+  private int timeStart;
+  private int timeEnd;
+  private String resortId;
+  private String skiDayNumber;
+  private int numPost;
+  private int numGet;
+  private CountDownLatch ninetyPctLatch;
+  private CountDownLatch totalLatch;
   private String address;
 
   public TaskForClientPart1(int skierIdStart, int skierIdEnd, int liftIdRange, int timeStart, int timeEnd,

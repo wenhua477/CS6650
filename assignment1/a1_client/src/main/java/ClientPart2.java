@@ -1,3 +1,5 @@
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +31,7 @@ public class ClientPart2 {
   static final SharedRequestCountAtomic sharedRequestCountAtomic = new SharedRequestCountAtomic();
 
 
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws InterruptedException, IOException {
     // read them from args
     int maxThreads = 32;
     int numSkiers = 20000;
@@ -37,7 +39,7 @@ public class ClientPart2 {
     String skiDayId = "344";
     String resortID = "SilverMt";
 //    String serverAddr = "http://ec2-18-208-192-60.compute-1.amazonaws.com:8080/a1_server_war/skiers";
-    String serverAddr = "http://localhost:8080/CS6650_A1_Server_war_exploded/skiers";
+    String serverAddr = "http://localhost:8080/a1_server_war_exploded";
     //  each ski day is of length 420 minutes
 
     int numThreadForPhase1 = maxThreads / 4;
@@ -59,7 +61,8 @@ public class ClientPart2 {
       } else {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
-      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_1,
+      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts,
+          START_TIME_PHASE_1,
           END_TIME_PHASE_1,
           resortID, skiDayId, NUM_POST_PHASE_1, NUM_GET_PHASE_1, phase1LatchNinetyPct,
           phase1LatchAll, serverAddr);
@@ -83,7 +86,8 @@ public class ClientPart2 {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
 
-      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_2,
+      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts,
+          START_TIME_PHASE_2,
           END_TIME_PHASE_2,
           resortID, skiDayId, NUM_POST_PHASE_2, NUM_GET_PHASE_2, phase2LatchNinetyPct,
           phase2LatchAll, serverAddr);
@@ -105,7 +109,8 @@ public class ClientPart2 {
       } else {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
-      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_3,
+      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts,
+          START_TIME_PHASE_3,
           END_TIME_PHASE_3,
           resortID, skiDayId, NUM_POST_PHASE_3, NUM_GET_PHASE_3, null,
           phase3LatchAll, serverAddr);
@@ -122,17 +127,22 @@ public class ClientPart2 {
     double totalTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
     double throughPut =
         (numOfSuccess + numOfFailure) / (totalTimeInSec * 1.0);
-//    System.out.println(String.format("Number of successful requests: %s \n"
-//        + "number of failed requests: %s \n"
-//        + "total requests: %s \n"
-//        + "total run time in seconds (wall time): %s \n"
-//        + "throughput: %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess, totalTimeInSec, throughPut));
+    System.out.println(String.format("Number of successful requests= %s \n"
+            + "number of failed requests= %s \n"
+            + "Total requests= %s \n"
+            + "Total run time in seconds (wall time)= %s \n"
+            + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess,
+        totalTimeInSec, throughPut));
 
-    for (int i = 0; i < resultList.size(); i ++) {
-      List<String> l = resultList.get(i);
-      for (int j = 0; j < l.size(); j ++) {
-        System.out.println(l.get(j));
+    FileWriter csvWriter = new FileWriter("new.csv");
+    csvWriter.append("StartTime,RequestType,Latency,ResponseCode\n");
+    for (List<String> list : resultList) {
+      for (String res : list) {
+        csvWriter.append(res);
+        csvWriter.append("\n");
       }
     }
+    csvWriter.flush();
+    csvWriter.close();
   }
 }

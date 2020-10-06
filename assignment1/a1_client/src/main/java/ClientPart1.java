@@ -34,7 +34,7 @@ public class ClientPart1 {
     String skiDayId = "344";
     String resortID = "SilverMt";
 //    String serverAddr = "http://ec2-18-208-192-60.compute-1.amazonaws.com:8080/a1_server_war/skiers";
-    String serverAddr = "http://localhost:8080/CS6650_A1_Server_war_exploded/skiers";
+    String serverAddr = "http://localhost:8080/a1_server_war_exploded";
     //  each ski day is of length 420 minutes
 
     int numThreadForPhase1 = maxThreads / 4;
@@ -117,10 +117,10 @@ public class ClientPart1 {
     double totalTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
     double throughPut =
         (numOfSuccess + numOfFailure) / (totalTimeInSec * 1.0);
-    System.out.println(String.format("Number of successful requests: %s \n"
-        + "number of failed requests: %s \n"
-        + "total requests: %s \n"
-        + "total run time in seconds (wall time): %s \n"
-        + "throughput: %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess, totalTimeInSec, throughPut));
+    System.out.println(String.format("Number of successful requests= %s \n"
+        + "number of failed requests= %s \n"
+        + "Total requests= %s \n"
+        + "Total run time in seconds (wall time)= %s \n"
+        + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess, totalTimeInSec, throughPut));
   }
 }

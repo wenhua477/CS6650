@@ -9,17 +9,17 @@ import java.util.concurrent.CountDownLatch;
 public class TaskForClientPart2 implements Runnable {
 
   private List<List<String>> resultList;
-  protected int skierIdStart;
-  protected int skierIdEnd;
-  protected int liftIdRange;
-  protected int timeStart;
-  protected int timeEnd;
-  protected String resortId;
-  protected String skiDayNumber;
-  protected int numPost;
-  protected int numGet;
-  protected CountDownLatch ninetyPctLatch;
-  protected CountDownLatch totalLatch;
+  private int skierIdStart;
+  private int skierIdEnd;
+  private int liftIdRange;
+  private int timeStart;
+  private int timeEnd;
+  private String resortId;
+  private String skiDayNumber;
+  private int numPost;
+  private int numGet;
+  private CountDownLatch ninetyPctLatch;
+  private CountDownLatch totalLatch;
   private String address;
 
   public TaskForClientPart2(List<List<String>> resultList, int skierIdStart, int skierIdEnd,
@@ -66,8 +66,8 @@ public class TaskForClientPart2 implements Runnable {
       }
     }
 
-    ClientPart1.sharedRequestCountAtomic.numSuccessAtomic.addAndGet(successCnt);
-    ClientPart1.sharedRequestCountAtomic.numFailureAtomic.addAndGet(failureCnt);
+    ClientPart2.sharedRequestCountAtomic.numSuccessAtomic.addAndGet(successCnt);
+    ClientPart2.sharedRequestCountAtomic.numFailureAtomic.addAndGet(failureCnt);
     resultList.add(list);
   }
 
