@@ -9,13 +9,13 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TestConnectionClient {
-  public static void main(String[] args) {
+  public static void main(String[] args) throws ApiException {
     SkiersApi skiersApi = new SkiersApi();
 
-//    skiersApi.getApiClient().setBasePath("http://localhost:8080/CS6650_A1_Server_war_exploded");
-    skiersApi.getApiClient().setBasePath("http://ec2-18-208-192-60.compute-1.amazonaws.com:8080/a1_server_war");
+    skiersApi.getApiClient().setBasePath("http://localhost:8080/a1_server_war_exploded");
+//    skiersApi.getApiClient().setBasePath("http://ec2-18-208-192-60.compute-1.amazonaws.com:8080/a1_server_war");
 
-    List<String> resort = Arrays.asList("resort1");
+    List<String> resort = Arrays.asList("resort1", "resort2");
     String dayID = "dayID";
 
     String resortID = "resortID";
@@ -42,6 +42,10 @@ public class TestConnectionClient {
     } catch (ApiException e) {
       e.printStackTrace();
     }
+//
+//    List<String> dayIds = Arrays.asList("dayId1", "dayId2");
+//    ResortsApi resortsApi = new ResortsApi();
+//    resortsApi.getTopTenVert(resort, dayIds);
   }
 
 }

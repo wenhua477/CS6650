@@ -1,69 +1,115 @@
-import io.swagger.client.model.LiftRide;
+import com.google.gson.Gson;
+import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
+import java.util.Arrays;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class SkierServlet extends javax.servlet.http.HttpServlet {
 
-  protected void doPost(HttpServletRequest req,
-      HttpServletResponse res)
+  protected void doPost(HttpServletRequest request,
+      HttpServletResponse response)
       throws javax.servlet.ServletException, IOException {
+    response.setContentType("application/json;charset:utf-8");
+    String urlPath = request.getPathInfo();
 
-    res.setStatus(HttpServletResponse.SC_OK);
-    String urlPath = req.getPathInfo();
-    System.out.println(urlPath);
+    Gson gson = new Gson();
 
-    // check we have a URL!
-    if (urlPath == null || urlPath.isEmpty()) {
-      res.setStatus(HttpServletResponse.SC_NOT_FOUND);
-//      res.getWriter().write("missing paramterers");
+    // check we have a valid URL!
+    if (!isPostUrlValid(urlPath)) {
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      InvalidReturnMessage message = new InvalidReturnMessage();
+      message.setMessage("Url wrong, invalid request.");
+      response.getWriter().write(gson.toJson(message));
       return;
     }
-    if (urlPath.equals("/skiers/liftrides")) {
-      res.setStatus(HttpServletResponse.SC_OK);
-    }
 
-//    response.getWriter().write("Dummy valid data for Post");
+    response.setStatus(HttpServletResponse.SC_CREATED);
   }
 
-  protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+  protected void doGet(HttpServletRequest req, HttpServletResponse res)
+      throws ServletException, IOException {
     res.setContentType("application/json;charset:utf-8");
     String urlPath = req.getPathInfo();
+
     System.out.println(urlPath);
-    LiftRide liftRide = new LiftRide();
+    String[] urlParts = urlPath.split("/");
+    System.out.println(Arrays.toString(urlParts));
+    System.out.println(urlParts.length);
+    Gson gson = new Gson();
+    InvalidReturnMessage invalidReturnMessage;
 
-
-    // check we have a URL!
     if (urlPath == null || urlPath.isEmpty()) {
       res.setStatus(HttpServletResponse.SC_NOT_FOUND);
-//      res.getWriter().write("missing paramterers ");
+
+      invalidReturnMessage = new InvalidReturnMessage();
+      invalidReturnMessage.setMessage("Invalid request.");
+      res.getWriter().write(gson.toJson(invalidReturnMessage));
       return;
     }
 
-    if (urlPath.equals("/resort/day/top10vert")) {
+    if (isGetTotalVerticalForSpecifiedResortsUrlValid(urlPath)) {
       res.setStatus(HttpServletResponse.SC_OK);
-      return;
-    }
+      System.out.println("in line 50");
 
-    String[] urlParts = urlPath.split("/");
-    // and now validate url path and return the response status code
-    // (and maybe also some value if input is valid)
+      SkierVertical skierVertical = new SkierVertical();
+      System.out.println(req.getParameterMap().get("resort")[0]);
+      String resortId = req.getParameterMap().get("resort")[0];
+      System.out.println(resortId);
+      skierVertical.setResortID(resortId);
+      skierVertical.setTotalVert(1000000);
+      res.getWriter().write(gson.toJson(skierVertical));
+    } else if (isGetTotalVerticalForTheDayUrlValid(urlPath)) {
+      res.setStatus(HttpServletResponse.SC_OK);
 
-    if (!isUrlValid(urlParts)) {
-      res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+      SkierVertical skierVertical = new SkierVertical();
+      String resortId = urlPath.split("/")[1];
+      skierVertical.setResortID(resortId);
+      skierVertical.setTotalVert(100000);
+      res.getWriter().write(gson.toJson(skierVertical));
     } else {
-      res.setStatus(HttpServletResponse.SC_OK);
-      // do any sophisticated processing with urlParts which contains all the url params
-      // TODO: process url params in `urlParts`
-//      res.getWriter().write("Dummy valid data for Get");
+      System.out.println("what?");
+      res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+
+      invalidReturnMessage = new InvalidReturnMessage();
+      invalidReturnMessage.setMessage("Invalid request.");
+      res.getWriter().write(gson.toJson(invalidReturnMessage));
+      System.out.println(gson.toJson(invalidReturnMessage));
+      // TODO findout why gson won't work
     }
   }
 
-  private boolean isUrlValid(String[] urlPath) {
-    // TODO: validate the request url path according to the API spec
-    // urlPath  = "/1/seasons/2019/day/1/skier/123"
-    // urlParts = [, 1, seasons, 2019, day, 1, skier, 123]
+
+  private boolean isGetTotalVerticalForTheDayUrlValid(String urlPath) {
+    String[] urlParts = urlPath.split("/");
+
+    // Check whether it is /{resortID}/days/{dayID}/skiers/{skierID}
+    return (urlParts.length == 6 && urlParts[2].equals("days") && onlyDigits(urlParts[3])
+        && urlParts[4]
+        .equals("skiers") && onlyDigits(urlParts[5]));
+  }
+
+  private boolean isGetTotalVerticalForSpecifiedResortsUrlValid(String urlPath) {
+    String[] urlParts = urlPath.split("/");
+
+    // Check whether it is /{skierID}/vertical
+    return (urlParts.length == 3 && urlParts[2].equals("vertical") && onlyDigits(urlParts[1]));
+  }
+
+  private boolean isPostUrlValid(String urlPath) {
+    return urlPath != null && !urlPath.isEmpty() && urlPath.equals("/liftrides");
+  }
+
+  // Check if a string contains only digits
+  private static boolean onlyDigits(String str) {
+    int len = str.length();
+    // Traverse the string from start to end
+    for (int i = 0; i < len; i++) {
+      if (!(str.charAt(i) >= '0' && str.charAt(i) <= '9')) {
+        return false;
+      }
+    }
     return true;
   }
 }
