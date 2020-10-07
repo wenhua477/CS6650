@@ -1,5 +1,4 @@
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,16 +32,22 @@ public class ClientPart2 {
   static final SharedRequestCountAtomic sharedRequestCountAtomic = new SharedRequestCountAtomic();
 
 
-  public static void main(String[] args) throws InterruptedException, IOException {
-    // read them from args
-    int maxThreads = 32;
-    int numSkiers = 20000;
-    int numLifts = 40;
-    String skiDayId = "344";
-    String resortID = "SilverMt";
-//    String serverAddr = "http://ec2-18-208-192-60.compute-1.amazonaws.com:8080/a1_server_war/skiers";
-    String serverAddr = "http://localhost:8080/a1_server_war_exploded";
-    //  each ski day is of length 420 minutes
+  public static void main(String[] args) throws Exception {
+    InputArguments inputArguments;
+    try {
+      inputArguments = new InputArguments(args);
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new Exception("Invalid inputs. Program exits.");
+    }
+
+    // Read them from inputArguments
+    int maxThreads = inputArguments.getMaxThreads();
+    int numSkiers = inputArguments.getNumSkiers();
+    int numLifts = inputArguments.getNumLifts();
+    String skiDayId = inputArguments.getSkiDayNumber();
+    String resortID = inputArguments.getResortId();
+    String serverAddr = inputArguments.getServerAddress();
 
     int numThreadForPhase1 = maxThreads / 4;
     CountDownLatch phase1LatchNinetyPct = new CountDownLatch(numThreadForPhase1 * 90 / 100);
