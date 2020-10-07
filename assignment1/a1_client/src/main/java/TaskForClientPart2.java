@@ -21,14 +21,14 @@ public class TaskForClientPart2 implements Runnable {
   private String skiDayNumber;
   private int numPost;
   private int numGet;
-  private CountDownLatch ninetyPctLatch;
+  private CountDownLatch tenPctLatch;
   private CountDownLatch totalLatch;
   private String address;
 
   public TaskForClientPart2(List<String> resultList, int skierIdStart, int skierIdEnd,
       int liftIdRange, int timeStart, int timeEnd,
       String resortId, String skiDayNumber, int numPost, int numGet,
-      CountDownLatch ninetyPctLatch, CountDownLatch totalLatch, String address) {
+      CountDownLatch tenPctLatch, CountDownLatch totalLatch, String address) {
     this.resultList = resultList;
     this.skierIdStart = skierIdStart;
     this.skierIdEnd = skierIdEnd;
@@ -39,7 +39,7 @@ public class TaskForClientPart2 implements Runnable {
     this.skiDayNumber = skiDayNumber;
     this.numPost = numPost;
     this.numGet = numGet;
-    this.ninetyPctLatch = ninetyPctLatch;
+    this.tenPctLatch = tenPctLatch;
     this.totalLatch = totalLatch;
     this.address = address;
   }
@@ -154,8 +154,8 @@ public class TaskForClientPart2 implements Runnable {
   public void run() {
     sendRequests();
 
-    if (ninetyPctLatch != null) {
-      ninetyPctLatch.countDown();
+    if (tenPctLatch != null) {
+      tenPctLatch.countDown();
     }
     totalLatch.countDown();
   }

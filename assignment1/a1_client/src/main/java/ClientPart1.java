@@ -44,7 +44,7 @@ public class ClientPart1 {
     String serverAddr = inputArguments.getServerAddress();
 
     int numThreadForPhase1 = maxThreads / 4;
-    CountDownLatch phase1LatchNinetyPct = new CountDownLatch(numThreadForPhase1 * 90 / 100);
+    CountDownLatch phase1LatchTenPct = new CountDownLatch(numThreadForPhase1 * 10 / 100);
     CountDownLatch phase1LatchAll = new CountDownLatch(numThreadForPhase1);
     int numOfSkierIdsPerThread = numSkiers / numThreadForPhase1;
     int skierIdStart = 0;
@@ -62,16 +62,16 @@ public class ClientPart1 {
       }
       Runnable th = new TaskForClientPart1(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_1,
           END_TIME_PHASE_1,
-          resortID, skiDayId, NUM_POST_PHASE_1, NUM_GET_PHASE_1, phase1LatchNinetyPct,
+          resortID, skiDayId, NUM_POST_PHASE_1, NUM_GET_PHASE_1, phase1LatchTenPct,
           phase1LatchAll, serverAddr);
       new Thread(th).start();
     }
 
-    phase1LatchNinetyPct.await();
+    phase1LatchTenPct.await();
 
     // Phase 2
     int numThreadForPhase2 = maxThreads;
-    CountDownLatch phase2LatchNinetyPct = new CountDownLatch(numThreadForPhase2 * 90 / 100);
+    CountDownLatch phase2LatchTenPct = new CountDownLatch(numThreadForPhase2 * 10 / 100);
     CountDownLatch phase2LatchAll = new CountDownLatch(numThreadForPhase2);
     numOfSkierIdsPerThread = numSkiers / numThreadForPhase2;
     skierIdEnd = 0;
@@ -86,12 +86,12 @@ public class ClientPart1 {
 
       Runnable th = new TaskForClientPart1(skierIdStart, skierIdEnd, numLifts, START_TIME_PHASE_2,
           END_TIME_PHASE_2,
-          resortID, skiDayId, NUM_POST_PHASE_2, NUM_GET_PHASE_2, phase2LatchNinetyPct,
+          resortID, skiDayId, NUM_POST_PHASE_2, NUM_GET_PHASE_2, phase2LatchTenPct,
           phase2LatchAll, serverAddr);
       new Thread(th).start();
     }
 
-    phase2LatchNinetyPct.await();
+    phase2LatchTenPct.await();
 
     // Phase 3
     int numThreadForPhase3 = maxThreads / 4;
