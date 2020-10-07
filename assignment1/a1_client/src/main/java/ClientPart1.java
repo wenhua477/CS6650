@@ -114,13 +114,13 @@ public class ClientPart1 {
     long endTimeInMillSec = System.currentTimeMillis();
     int numOfSuccess = sharedRequestCountAtomic.numSuccessAtomic.get();
     int numOfFailure = sharedRequestCountAtomic.numFailureAtomic.get();
-    double totalTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
+    double wallTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
     double throughPut =
-        (numOfSuccess + numOfFailure) / (totalTimeInSec * 1.0);
+        numOfSuccess / (wallTimeInSec * 1.0);
     System.out.println(String.format("Number of successful requests= %s \n"
         + "number of failed requests= %s \n"
         + "Total requests= %s \n"
         + "Total run time in seconds (wall time)= %s \n"
-        + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess, totalTimeInSec, throughPut));
+        + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess, wallTimeInSec, throughPut));
   }
 }

@@ -1,7 +1,9 @@
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,25 +126,61 @@ public class ClientPart2 {
     long endTimeInMillSec = System.currentTimeMillis();
     int numOfSuccess = sharedRequestCountAtomic.numSuccessAtomic.get();
     int numOfFailure = sharedRequestCountAtomic.numFailureAtomic.get();
-    double totalTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
+    double wallTimeInSec = ((endTimeInMillSec - startTimeInMillSec) / 1000.0) * 1.0;
     double throughPut =
-        (numOfSuccess + numOfFailure) / (totalTimeInSec * 1.0);
+        numOfSuccess / (wallTimeInSec * 1.0);
     System.out.println(String.format("Number of successful requests= %s \n"
             + "number of failed requests= %s \n"
             + "Total requests= %s \n"
             + "Total run time in seconds (wall time)= %s \n"
             + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess,
-        totalTimeInSec, throughPut));
+        wallTimeInSec, throughPut));
 
     FileWriter csvWriter = new FileWriter("new.csv");
     csvWriter.append("StartTime,RequestType,Latency,ResponseCode\n");
+
+    List<CsvRecord> csvRecords = new LinkedList<CsvRecord>();
     for (List<String> list : resultList) {
       for (String res : list) {
         csvWriter.append(res);
         csvWriter.append("\n");
+        csvRecords.add(new CsvRecord(res));
       }
     }
     csvWriter.flush();
     csvWriter.close();
+
+    // Calculate mean, median and max value of request latencies
+    int[] latencies = new int[csvRecords.size()];
+    for (int i = 0; i < csvRecords.size(); i++) {
+      latencies[i] = csvRecords.get(i).getLatency();
+    }
+    // Calculate mean
+    double mean = Arrays.stream(latencies).average().orElse(Double.NaN);
+    // Calculate median
+    double median;
+    Arrays.sort(latencies);
+    if (latencies.length % 2 == 0) {
+      median =
+          ((double) latencies[latencies.length / 2] + (double) latencies[latencies.length / 2 - 1])
+              / 2;
+    } else {
+      median = (double) latencies[latencies.length / 2];
+    }
+
+    // Get max latency
+    double maxLatency = latencies[latencies.length - 1];
+
+    // Calculate p99
+    double p99Latency = latencies[(int) (latencies.length * 0.99)];
+
+    System.out.println("\n");
+    System.out.println(String.format("Mean response time=%s,\n"
+            + "Median response time=%s,\n"
+            + "Total wall time=%s,\n"
+            + "Throughput=%s,\n"
+            + "P99 response time=%s,\n"
+            + "Max response time=%s.\n",
+        mean, median, wallTimeInSec, throughPut, p99Latency, maxLatency));
   }
 }
