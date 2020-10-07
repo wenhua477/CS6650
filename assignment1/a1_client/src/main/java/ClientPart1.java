@@ -1,7 +1,5 @@
-import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import picocli.CommandLine;
 
 public class ClientPart1 {
 
@@ -45,7 +43,7 @@ public class ClientPart1 {
 //    String resortID = inputArguments.getResortId();
 //    String serverAddr = inputArguments.getServerAddress();
     // Read them from inputArguments
-    int maxThreads = 32;
+    int maxThreads = 256;
     int numSkiers = 32;
     int numLifts = 32;
     String skiDayId = "32";

@@ -1,7 +1,6 @@
 import com.google.gson.Gson;
 import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
-import java.util.Arrays;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -33,10 +32,7 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     res.setContentType("application/json;charset:utf-8");
     String urlPath = req.getPathInfo();
 
-    System.out.println(urlPath);
     String[] urlParts = urlPath.split("/");
-    System.out.println(Arrays.toString(urlParts));
-    System.out.println(urlParts.length);
     Gson gson = new Gson();
     InvalidReturnMessage invalidReturnMessage;
 
@@ -51,12 +47,9 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
 
     if (isGetTotalVerticalForSpecifiedResortsUrlValid(urlPath)) {
       res.setStatus(HttpServletResponse.SC_OK);
-      System.out.println("in line 50");
 
       SkierVertical skierVertical = new SkierVertical();
-      System.out.println(req.getParameterMap().get("resort")[0]);
       String resortId = req.getParameterMap().get("resort")[0];
-      System.out.println(resortId);
       skierVertical.setResortID(resortId);
       skierVertical.setTotalVert(1000000);
       res.getWriter().write(gson.toJson(skierVertical));
@@ -69,14 +62,11 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
       skierVertical.setTotalVert(100000);
       res.getWriter().write(gson.toJson(skierVertical));
     } else {
-      System.out.println("what?");
       res.setStatus(HttpServletResponse.SC_NOT_FOUND);
 
       invalidReturnMessage = new InvalidReturnMessage();
       invalidReturnMessage.setMessage("Invalid request.");
       res.getWriter().write(gson.toJson(invalidReturnMessage));
-      System.out.println(gson.toJson(invalidReturnMessage));
-      // TODO findout why gson won't work
     }
   }
 

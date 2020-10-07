@@ -33,21 +33,28 @@ public class ClientPart2 {
 
 
   public static void main(String[] args) throws Exception {
-    InputArguments inputArguments;
-    try {
-      inputArguments = new InputArguments(args);
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new Exception("Invalid inputs. Program exits.");
-    }
+//    InputArguments inputArguments;
+//    try {
+//      inputArguments = new InputArguments(args);
+//    } catch (Exception e) {
+//      e.printStackTrace();
+//      throw new Exception("Invalid inputs. Program exits.");
+//    }
+//
+//    // Read them from inputArguments
+//    int maxThreads = inputArguments.getMaxThreads();
+//    int numSkiers = inputArguments.getNumSkiers();
+//    int numLifts = inputArguments.getNumLifts();
+//    String skiDayId = inputArguments.getSkiDayNumber();
+//    String resortID = inputArguments.getResortId();
+//    String serverAddr = inputArguments.getServerAddress();
 
-    // Read them from inputArguments
-    int maxThreads = inputArguments.getMaxThreads();
-    int numSkiers = inputArguments.getNumSkiers();
-    int numLifts = inputArguments.getNumLifts();
-    String skiDayId = inputArguments.getSkiDayNumber();
-    String resortID = inputArguments.getResortId();
-    String serverAddr = inputArguments.getServerAddress();
+    int maxThreads = 256;
+    int numSkiers = 32;
+    int numLifts = 32;
+    String skiDayId = "32";
+    String resortID = "32";
+    String serverAddr = "http://localhost:8080/a1_server_war_exploded";
 
     int numThreadForPhase1 = maxThreads / 4;
     CountDownLatch phase1LatchNinetyPct = new CountDownLatch(numThreadForPhase1 * 90 / 100);

@@ -5,8 +5,11 @@ import io.swagger.client.model.LiftRide;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class TaskForClientPart2 implements Runnable {
+  private static final Logger logger = LogManager.getLogger(TaskForClientPart2.class);
 
   private List<List<String>> resultList;
   private int skierIdStart;
@@ -72,10 +75,6 @@ public class TaskForClientPart2 implements Runnable {
   }
 
   private boolean sendPost(SkiersApi skiersApi, List<String> list) {
-//    1. a skierID from the range of ids passed to the thread
-//    2. a lift number (liftID)
-//    3. a time from the range of minutes passed to each thread (start and end time -
-//        same for each thread)
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     String liftId = getRandomLiftId(liftIdRange);
     String time = getRandomTime(timeStart, timeEnd);
@@ -86,14 +85,17 @@ public class TaskForClientPart2 implements Runnable {
     liftRide.setTime(time);
     liftRide.setDayID(skiDayNumber);
 
-    ApiResponse<Void> apiResponse = null;
+    ApiResponse<Void> apiResponse;
     long startTime = System.currentTimeMillis();
     try {
       apiResponse = skiersApi.writeNewLiftRideWithHttpInfo(liftRide);
     } catch (ApiException e) {
       // If it doesn't successfully get a response at all, we don't count it in to our latency check.
-      // TODO: log the error using log4j.
-      e.printStackTrace();
+      int errorCode = e.getCode();
+      logger.error(e);
+      if (errorCode / 100 == 4 || errorCode / 100 == 5) {
+        logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
+      }
       return false;
     }
 
@@ -106,29 +108,24 @@ public class TaskForClientPart2 implements Runnable {
     long latency = endTime - startTime;
 
     int code = apiResponse.getStatusCode();
-    list.add(String.valueOf(startTime) + "," + "POST" + "," + String.valueOf(latency) + "," + String
-        .valueOf(code));
+    list.add(startTime + "," + "POST" + "," + latency + "," + code);
 
-    if (code == 201 || code == 200) {
-      return true;
-    }
-    if (code / 100 == 4 || code / 100 == 5) {
-      // TODO: log the error using log4j.
-      return false;
-    }
-    return false;
+    return code == 201 || code == 200;
   }
 
   private boolean sendGet(SkiersApi skiersApi, List<String> list) {
-//    Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
+    // Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     ApiResponse<io.swagger.client.model.SkierVertical> apiResponse = null;
     long startTime = System.currentTimeMillis();
     try {
       apiResponse = skiersApi.getSkierDayVerticalWithHttpInfo(resortId, skiDayNumber, skierId);
     } catch (ApiException e) {
-      // TODO: log the error using log4j.
-      e.printStackTrace();
+      int errorCode = e.getCode();
+      logger.error(e);
+      if (errorCode / 100 == 4 || errorCode / 100 == 5) {
+        logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
+      }
       return false;
     }
 
@@ -140,18 +137,9 @@ public class TaskForClientPart2 implements Runnable {
 
     int code = apiResponse.getStatusCode();
 
-    list.add(String.valueOf(startTime) + "," + "GET" + "," + String.valueOf(latency) + "," + String
-        .valueOf(code));
+    list.add(startTime + "," + "GET" + "," + latency + "," + code);
 
-    if (code == 200 || code == 201) {
-      return true;
-    }
-    if (code / 100 == 4 || code / 100 == 5) {
-      // TODO: log the error using log4j.
-      return false;
-    }
-
-    return false;
+    return code == 200 || code == 201;
   }
 
   /**

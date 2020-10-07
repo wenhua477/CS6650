@@ -4,7 +4,12 @@ import io.swagger.client.api.SkiersApi;
 import io.swagger.client.model.LiftRide;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class TaskForClientPart1 implements Runnable{
+  private static final Logger logger = LogManager.getLogger(TaskForClientPart1.class);
+
   private int skierIdStart;
   private int skierIdEnd;
   private int liftIdRange;
@@ -61,7 +66,6 @@ public class TaskForClientPart1 implements Runnable{
 
     ClientPart1.sharedRequestCountAtomic.numSuccessAtomic.addAndGet(successCnt);
     ClientPart1.sharedRequestCountAtomic.numFailureAtomic.addAndGet(failureCnt);
-
   }
 
   private boolean sendPost(SkiersApi skiersApi) {
@@ -83,8 +87,11 @@ public class TaskForClientPart1 implements Runnable{
     try {
       apiResponse = skiersApi.writeNewLiftRideWithHttpInfo(liftRide);
     } catch (ApiException e) {
-      // TODO: log the error using log4j.
-      e.printStackTrace();
+      int errorCode = e.getCode();
+      logger.error(e);
+      if (errorCode / 100 == 4 || errorCode / 100 == 5) {
+        logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
+      }
       return false;
     }
 
@@ -93,26 +100,21 @@ public class TaskForClientPart1 implements Runnable{
     }
 
     int code = apiResponse.getStatusCode();
-    if (code == 201 || code == 200) {
-      return true;
-    }
-    if (code / 100 == 4 || code / 100 == 5) {
-      // TODO: log the error using log4j.
-      return false;
-    }
-    System.out.println(code);
-    return false;
+    return code == 201 || code == 200;
   }
 
   private boolean sendGet(SkiersApi skiersApi) {
-//    Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
+    // Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     ApiResponse apiResponse = null;
     try {
       apiResponse = skiersApi.getSkierDayVerticalWithHttpInfo(resortId, skiDayNumber, skierId);
     } catch (ApiException e) {
-      // TODO: log the error using log4j.
-      e.printStackTrace();
+      int errorCode = e.getCode();
+      logger.error(e);
+      if (errorCode / 100 == 4 || errorCode / 100 == 5) {
+        logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
+      }
       return false;
     }
 
@@ -121,15 +123,7 @@ public class TaskForClientPart1 implements Runnable{
     }
 
     int code = apiResponse.getStatusCode();
-    if (code == 200 || code == 201) {
-      return true;
-    }
-    if (code / 100 == 4 || code / 100 == 5) {
-      // TODO: log the error using log4j.
-      return false;
-    }
-
-    return false;
+    return code == 200 || code == 201;
   }
 
   /**
