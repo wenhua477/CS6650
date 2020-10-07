@@ -23,18 +23,22 @@ public class TestConnectionClient {
     ApiResponse<SkierVertical> response2 = null;
     try {
       response2 = skiersApi.getSkierDayVerticalWithHttpInfo(resortID, dayID, skierID);
+      System.out.println(response2.getStatusCode());
+
     } catch (ApiException e) {
-      e.printStackTrace();
+      System.out.println(e.getCode());
+      System.out.println(e.getResponseBody());
     }
-    System.out.println(response2.getStatusCode());
 
     ApiResponse<SkierVertical> response3 = null;
     try {
       response3 = skiersApi.getSkierResortTotalsWithHttpInfo(skierID, resort);
+      System.out.println(response3.getStatusCode());
+
     } catch (ApiException e) {
-      e.printStackTrace();
+      System.out.println(e.getCode());
+      System.out.println(e.getResponseBody());
     }
-    System.out.println(response3.getStatusCode());
 
     LiftRide body = new LiftRide();
     try {
@@ -42,10 +46,10 @@ public class TestConnectionClient {
     } catch (ApiException e) {
       e.printStackTrace();
     }
-//
-//    List<String> dayIds = Arrays.asList("dayId1", "dayId2");
-//    ResortsApi resortsApi = new ResortsApi();
-//    resortsApi.getTopTenVert(resort, dayIds);
+
+    List<String> dayIds = Arrays.asList("dayId1", "dayId2");
+    ResortsApi resortsApi = new ResortsApi();
+    resortsApi.getTopTenVert(resort, dayIds);
   }
 
 }
