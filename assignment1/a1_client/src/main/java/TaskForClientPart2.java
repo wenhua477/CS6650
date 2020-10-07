@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 public class TaskForClientPart2 implements Runnable {
   private static final Logger logger = LogManager.getLogger(TaskForClientPart2.class);
 
-  private List<List<String>> resultList;
+  private List<String> resultList;
   private int skierIdStart;
   private int skierIdEnd;
   private int liftIdRange;
@@ -25,7 +25,7 @@ public class TaskForClientPart2 implements Runnable {
   private CountDownLatch totalLatch;
   private String address;
 
-  public TaskForClientPart2(List<List<String>> resultList, int skierIdStart, int skierIdEnd,
+  public TaskForClientPart2(List<String> resultList, int skierIdStart, int skierIdEnd,
       int liftIdRange, int timeStart, int timeEnd,
       String resortId, String skiDayNumber, int numPost, int numGet,
       CountDownLatch ninetyPctLatch, CountDownLatch totalLatch, String address) {
@@ -71,7 +71,6 @@ public class TaskForClientPart2 implements Runnable {
 
     ClientPart2.sharedRequestCountAtomic.numSuccessAtomic.addAndGet(successCnt);
     ClientPart2.sharedRequestCountAtomic.numFailureAtomic.addAndGet(failureCnt);
-    resultList.add(list);
   }
 
   private boolean sendPost(SkiersApi skiersApi, List<String> list) {
@@ -108,7 +107,7 @@ public class TaskForClientPart2 implements Runnable {
     long latency = endTime - startTime;
 
     int code = apiResponse.getStatusCode();
-    list.add(startTime + "," + "POST" + "," + latency + "," + code);
+    resultList.add(startTime + "," + "POST" + "," + latency + "," + code);
 
     return code == 201 || code == 200;
   }
@@ -137,7 +136,7 @@ public class TaskForClientPart2 implements Runnable {
 
     int code = apiResponse.getStatusCode();
 
-    list.add(startTime + "," + "GET" + "," + latency + "," + code);
+    resultList.add(startTime + "," + "GET" + "," + latency + "," + code);
 
     return code == 200 || code == 201;
   }

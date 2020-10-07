@@ -63,7 +63,7 @@ public class ClientPart2 {
     int skierIdStart;
     int skierIdEnd = 0;
 
-    List<List<String>> resultList = Collections.synchronizedList(new ArrayList<List<String>>());
+    List<String> resultList = Collections.synchronizedList(new ArrayList<String>());
 
     long startTimeInMillSec = System.currentTimeMillis();
 
@@ -152,12 +152,10 @@ public class ClientPart2 {
     csvWriter.append("StartTime,RequestType,Latency,ResponseCode\n");
 
     List<CsvRecord> csvRecords = new LinkedList<CsvRecord>();
-    for (List<String> list : resultList) {
-      for (String res : list) {
-        csvWriter.append(res);
-        csvWriter.append("\n");
-        csvRecords.add(new CsvRecord(res));
-      }
+    for (String res : resultList) {
+      csvWriter.append(res);
+      csvWriter.append("\n");
+      csvRecords.add(new CsvRecord(res));
     }
     csvWriter.flush();
     csvWriter.close();
