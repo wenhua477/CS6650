@@ -33,28 +33,21 @@ public class ClientPart2 {
 
 
   public static void main(String[] args) throws Exception {
-//    InputArguments inputArguments;
-//    try {
-//      inputArguments = new InputArguments(args);
-//    } catch (Exception e) {
-//      e.printStackTrace();
-//      throw new Exception("Invalid inputs. Program exits.");
-//    }
-//
-//    // Read them from inputArguments
-//    int maxThreads = inputArguments.getMaxThreads();
-//    int numSkiers = inputArguments.getNumSkiers();
-//    int numLifts = inputArguments.getNumLifts();
-//    String skiDayId = inputArguments.getSkiDayNumber();
-//    String resortID = inputArguments.getResortId();
-//    String serverAddr = inputArguments.getServerAddress();
+    InputArguments inputArguments;
+    try {
+      inputArguments = new InputArguments(args);
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new Exception("Invalid inputs. Program exits.");
+    }
 
-    int maxThreads = 256;
-    int numSkiers = 32;
-    int numLifts = 32;
-    String skiDayId = "32";
-    String resortID = "32";
-    String serverAddr = "http://localhost:8080/a1_server_war_exploded";
+    // Read them from inputArguments
+    int maxThreads = inputArguments.getMaxThreads();
+    int numSkiers = inputArguments.getNumSkiers();
+    int numLifts = inputArguments.getNumLifts();
+    String skiDayId = inputArguments.getSkiDayNumber();
+    String resortID = inputArguments.getResortId();
+    String serverAddr = inputArguments.getServerAddress();
 
     int numThreadForPhase1 = maxThreads / 4;
     CountDownLatch phase1LatchNinetyPct = new CountDownLatch(numThreadForPhase1 * 90 / 100);
@@ -148,19 +141,46 @@ public class ClientPart2 {
             + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess,
         wallTimeInSec, throughPut));
 
-    FileWriter csvWriter = new FileWriter("new.csv");
+    FileWriter csvWriter = new FileWriter(String.format("%s_threads.csv", maxThreads));
     csvWriter.append("StartTime,RequestType,Latency,ResponseCode\n");
 
-    List<CsvRecord> csvRecords = new LinkedList<CsvRecord>();
+    List<CsvRecord> csvRecordsForGet = new LinkedList<CsvRecord>();
+    List<CsvRecord> csvRecordsForPost = new LinkedList<CsvRecord>();
     for (String res : resultList) {
       csvWriter.append(res);
       csvWriter.append("\n");
-      csvRecords.add(new CsvRecord(res));
+      if (res.contains("GET")) {
+        csvRecordsForGet.add(new CsvRecord(res));
+      } else {
+        csvRecordsForPost.add(new CsvRecord(res));
+      }
     }
     csvWriter.flush();
     csvWriter.close();
 
-    // Calculate mean, median and max value of request latencies
+    // Calculate mean, median and max value of each request latencies
+    Statistics statForPost = calculateStatistics(csvRecordsForPost);
+    Statistics statForGet = calculateStatistics(csvRecordsForGet);
+
+    System.out.println("\n");
+    System.out.println(String.format(
+        "Total wall time=%s,\n"
+            + "Throughput=%s,\n"
+            + "Mean response time for GET=%s,\n"
+            + "Median response time for GET=%s,\n"
+            + "P99 response time for GET=%s,\n"
+            + "Max response time for GET=%s.\n"
+            + "Mean response time for POST=%s,\n"
+            + "Median response time for POST=%s,\n"
+            + "P99 response time for POST=%s,\n"
+            + "Max response time for POST=%s.\n",
+        wallTimeInSec, throughPut,
+        statForGet.getMean(), statForGet.getMedian(), statForGet.getP99(), statForGet.getMax(),
+        statForPost.getMean(), statForPost.getMedian(), statForPost.getP99(),
+        statForPost.getMax()));
+  }
+
+  private static Statistics calculateStatistics(List<CsvRecord> csvRecords) {
     int[] latencies = new int[csvRecords.size()];
     for (int i = 0; i < csvRecords.size(); i++) {
       latencies[i] = csvRecords.get(i).getLatency();
@@ -184,13 +204,11 @@ public class ClientPart2 {
     // Calculate p99
     double p99Latency = latencies[(int) (latencies.length * 0.99)];
 
-    System.out.println("\n");
-    System.out.println(String.format("Mean response time=%s,\n"
-            + "Median response time=%s,\n"
-            + "Total wall time=%s,\n"
-            + "Throughput=%s,\n"
-            + "P99 response time=%s,\n"
-            + "Max response time=%s.\n",
-        mean, median, wallTimeInSec, throughPut, p99Latency, maxLatency));
+    Statistics statistics = new Statistics();
+    statistics.setMean(mean);
+    statistics.setMedian(median);
+    statistics.setMax(maxLatency);
+    statistics.setP99(p99Latency);
+    return statistics;
   }
 }
