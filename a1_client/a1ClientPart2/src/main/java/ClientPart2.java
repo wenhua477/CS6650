@@ -146,6 +146,7 @@ public class ClientPart2 {
 
     List<CsvRecord> csvRecordsForGet = new LinkedList<CsvRecord>();
     List<CsvRecord> csvRecordsForPost = new LinkedList<CsvRecord>();
+    List<CsvRecord> csvRecordsTotal = new LinkedList<>();
     for (String res : resultList) {
       csvWriter.append(res);
       csvWriter.append("\n");
@@ -154,6 +155,7 @@ public class ClientPart2 {
       } else {
         csvRecordsForPost.add(new CsvRecord(res));
       }
+      csvRecordsTotal.add(new CsvRecord(res));
     }
     csvWriter.flush();
     csvWriter.close();
@@ -161,6 +163,7 @@ public class ClientPart2 {
     // Calculate mean, median and max value of each request latencies
     Statistics statForPost = calculateStatistics(csvRecordsForPost);
     Statistics statForGet = calculateStatistics(csvRecordsForGet);
+    Statistics statForTotal = calculateStatistics(csvRecordsTotal);
 
     System.out.println("\n");
     System.out.println(String.format(
@@ -173,11 +176,17 @@ public class ClientPart2 {
             + "Mean response time for POST=%s,\n"
             + "Median response time for POST=%s,\n"
             + "P99 response time for POST=%s,\n"
-            + "Max response time for POST=%s.\n",
+            + "Max response time for POST=%s.\n"
+            + "Mean response time for Total=%s,\n"
+            + "Median response time for Total=%s,\n"
+            + "P99 response time for Total=%s,\n"
+            + "Max response time for Total=%s.\n",
         wallTimeInSec, throughPut,
         statForGet.getMean(), statForGet.getMedian(), statForGet.getP99(), statForGet.getMax(),
         statForPost.getMean(), statForPost.getMedian(), statForPost.getP99(),
-        statForPost.getMax()));
+        statForPost.getMax(),
+        statForTotal.getMean(), statForTotal.getMedian(), statForTotal.getP99(),
+        statForTotal.getMax()));
   }
 
   private static Statistics calculateStatistics(List<CsvRecord> csvRecords) {
