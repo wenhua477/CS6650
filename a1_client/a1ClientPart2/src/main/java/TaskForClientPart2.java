@@ -45,14 +45,13 @@ public class TaskForClientPart2 implements Runnable {
   }
 
   private void sendRequests() {
-    List<String> list = new ArrayList<String>();
     SkiersApi skiersApi = new SkiersApi();
     skiersApi.getApiClient().setBasePath(address);
     int successCnt = 0;
     int failureCnt = 0;
     boolean isSuccessful;
     for (int i = 0; i < numPost; i++) {
-      isSuccessful = sendPost(skiersApi, list);
+      isSuccessful = sendPost(skiersApi);
       if (isSuccessful) {
         successCnt += 1;
       } else {
@@ -61,7 +60,7 @@ public class TaskForClientPart2 implements Runnable {
     }
 
     for (int i = 0; i < numGet; i++) {
-      isSuccessful = sendGet(skiersApi, list);
+      isSuccessful = sendGet(skiersApi);
       if (isSuccessful) {
         successCnt += 1;
       } else {
@@ -73,7 +72,7 @@ public class TaskForClientPart2 implements Runnable {
     ClientPart2.sharedRequestCountAtomic.numFailureAtomic.addAndGet(failureCnt);
   }
 
-  private boolean sendPost(SkiersApi skiersApi, List<String> list) {
+  private boolean sendPost(SkiersApi skiersApi) {
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     String liftId = getRandomLiftId(liftIdRange);
     String time = getRandomTime(timeStart, timeEnd);
@@ -89,16 +88,17 @@ public class TaskForClientPart2 implements Runnable {
     try {
       apiResponse = skiersApi.writeNewLiftRideWithHttpInfo(liftRide);
     } catch (ApiException e) {
-      // If it doesn't successfully get a response at all, we don't count it in to our latency check.
       int errorCode = e.getCode();
       logger.error(e);
       if (errorCode / 100 == 4 || errorCode / 100 == 5) {
         logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
       }
+      long endTime = System.currentTimeMillis();
+      long latency = endTime - startTime;
+      resultList.add(startTime + "," + "POST" + "," + latency + "," + e.getCode());
       return false;
     }
 
-    // If it doesn't successfully get a response at all, we don't count it in to our latency check.
     if (apiResponse == null) {
       return false;
     }
@@ -112,7 +112,7 @@ public class TaskForClientPart2 implements Runnable {
     return code == 201 || code == 200;
   }
 
-  private boolean sendGet(SkiersApi skiersApi, List<String> list) {
+  private boolean sendGet(SkiersApi skiersApi) {
     // Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     ApiResponse<io.swagger.client.model.SkierVertical> apiResponse = null;
@@ -125,6 +125,9 @@ public class TaskForClientPart2 implements Runnable {
       if (errorCode / 100 == 4 || errorCode / 100 == 5) {
         logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
       }
+      long endTime = System.currentTimeMillis();
+      long latency = endTime - startTime;
+      resultList.add(startTime + "," + "GET" + "," + latency + "," + e.getCode());
       return false;
     }
 
