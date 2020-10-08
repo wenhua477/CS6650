@@ -19,7 +19,7 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     if (!isPostUrlValid(urlPath)) {
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       InvalidReturnMessage message = new InvalidReturnMessage();
-      message.setMessage("Url wrong, invalid request.");
+      message.setMessage("Url wrong, it's an invalid request.");
       response.getWriter().write(gson.toJson(message));
       return;
     }
