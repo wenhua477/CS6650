@@ -1,11 +1,77 @@
 import com.google.gson.Gson;
+import io.swagger.client.model.LiftRide;
 import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.UUID;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class SkierServlet extends javax.servlet.http.HttpServlet {
+
+
+  private static InitialContext ctx = null;
+  //  private static final DataSource ds = null;
+  private static Connection conn = null;
+  private static PreparedStatement ps = null;
+  private static ResultSet rs = null;
+
+  private static final String driver = "com.mysql.cj.jdbc.Driver";
+  private static final String url =
+      "jdbc:mysql://database-2.cehjlxxknfu2.us-east-1.rds.amazonaws.com:3306/";
+  private static final String dbName = "db_for_a2";
+  private static final String userName = "wenhua";
+  private static final String password = "12345678";
+
+
+  private static final String INSERT_NEW_LIFTRIDE_SQL = "INSERT INTO LiftRides (liftRideID, resortID, dayID, vertical, skierID, time) values (?, ?, ?, ?, ?, ?);";
+  private static final String GET_SKIER_RESORT_TOTALS_SQL = "";
+
+  public void init() throws ServletException {
+    try {
+      Class.forName(driver);
+    } catch (ClassNotFoundException e) {
+      //TODO logger logout the exception
+      e.printStackTrace();
+    }
+
+    try {
+      conn = DriverManager.getConnection(url + dbName, userName, password);
+    } catch (SQLException e) {
+      // TODo log exception out
+      e.printStackTrace();
+    }
+  }
+
+  public void destroy() {
+    try {
+      if (rs != null) {
+        rs.close();
+      }
+      if (ps != null) {
+        ps.close();
+      }
+      if (conn != null) {
+        conn.close();
+      }
+      if (ctx != null) {
+        ctx.close();
+      }
+    } catch (SQLException se) {
+      // TODO logger
+      System.out.println("SQLException: " + se.getMessage());
+    } catch (NamingException ne) {
+      // TODO logger
+      System.out.println("NamingException: " + ne.getMessage());
+    }
+  }
 
   protected void doPost(HttpServletRequest request,
       HttpServletResponse response)
@@ -22,6 +88,23 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
       message.setMessage("Url wrong, it's an invalid request.");
       response.getWriter().write(gson.toJson(message));
       return;
+    }
+
+    LiftRide liftRide = new Gson().fromJson(request.getReader(), LiftRide.class);
+    try {
+      ps = conn.prepareStatement(INSERT_NEW_LIFTRIDE_SQL);
+
+      ps.setString(1, UUID.randomUUID().toString().replace("-", ""));
+      ps.setString(2, liftRide.getResortID());
+      ps.setString(3, liftRide.getDayID());
+      ps.setInt(4, Integer.parseInt(liftRide.getLiftID()) * 10);
+      ps.setString(5, liftRide.getSkierID());
+      ps.setString(6, liftRide.getTime());
+
+      ps.executeUpdate();
+    } catch (SQLException e) {
+      //todo log
+      e.printStackTrace();
     }
 
     response.setStatus(HttpServletResponse.SC_CREATED);
