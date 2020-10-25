@@ -31,8 +31,12 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
   private static final String password = "12345678";
 
 
-  private static final String INSERT_NEW_LIFTRIDE_SQL = "INSERT INTO LiftRides (liftRideID, resortID, dayID, vertical, skierID, time) values (?, ?, ?, ?, ?, ?);";
-  private static final String GET_SKIER_RESORT_TOTALS_SQL = "";
+  private static final String INSERT_NEW_LIFTRIDE_SQL =
+      "INSERT INTO LiftRides (liftRideID, resortID, dayID, vertical, skierID, time) values (?, ?, ?, ?, ?, ?);";
+  private static final String GET_SKIER_RESORT_TOTALS_SQL =
+      "SELECT IFNULL(SUM(vertical), 0) skier_resort_totals FROM LiftRides where skierID =? AND resortID=?;";
+  private static final String GET_SKIER_DAY_VERTICAL_SQL =
+      "SELECT IFNULL(sum(vertical), 0) skier_day_vertical FROM LiftRides where skierID =? AND resortID=? AND dayID=?;";
 
   public void init() throws ServletException {
     try {
@@ -118,8 +122,10 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     String[] urlParts = urlPath.split("/");
     Gson gson = new Gson();
     InvalidReturnMessage invalidReturnMessage;
+    System.out.println(urlPath);
 
     if (urlPath == null || urlPath.isEmpty()) {
+      System.out.println(" here?");
       res.setStatus(HttpServletResponse.SC_NOT_FOUND);
 
       invalidReturnMessage = new InvalidReturnMessage();
@@ -129,6 +135,7 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     }
 
     if (isGetTotalVerticalForSpecifiedResortsUrlValid(urlPath)) {
+      // /skiers/{skierID}/vertical
       res.setStatus(HttpServletResponse.SC_OK);
 
       SkierVertical skierVertical = new SkierVertical();
@@ -137,12 +144,34 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
       skierVertical.setTotalVert(1000000);
       res.getWriter().write(gson.toJson(skierVertical));
     } else if (isGetTotalVerticalForTheDayUrlValid(urlPath)) {
+      // /skiers/{resortID}/days/{dayID}/skiers/{skierID}
       res.setStatus(HttpServletResponse.SC_OK);
 
       SkierVertical skierVertical = new SkierVertical();
-      String resortId = urlPath.split("/")[1];
+      String resortId = urlParts[1];
+      String dayId = urlParts[3];
+      String skierId = urlParts[5];
+      try {
+        ps = conn.prepareStatement(GET_SKIER_DAY_VERTICAL_SQL);
+
+        ps.setString(1, skierId);
+        ps.setString(2, resortId);
+        ps.setString(3, dayId);
+
+        rs = ps.executeQuery();
+        if (!rs.next()) {
+          // TODo logout somethings wrong in db
+        } else {
+          rs.first();
+          skierVertical.setTotalVert(rs.getInt("skier_day_vertical"));
+        }
+      } catch (SQLException e) {
+        // TODO log
+        e.printStackTrace();
+      }
+
       skierVertical.setResortID(resortId);
-      skierVertical.setTotalVert(100000);
+
       res.getWriter().write(gson.toJson(skierVertical));
     } else {
       res.setStatus(HttpServletResponse.SC_NOT_FOUND);
