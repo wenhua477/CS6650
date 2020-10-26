@@ -3,25 +3,25 @@ import io.swagger.client.model.LiftRide;
 import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.UUID;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SkierServlet extends javax.servlet.http.HttpServlet {
 
+  private static final Logger logger = LogManager.getLogger(SkierServlet.class);
+  private final LiftRideDao liftRideDao = new LiftRideDao();
+
   private static Connection conn = null;
 
-  private static final String driver = "com.mysql.cj.jdbc.Driver";
-  private static final String url =
-      "jdbc:mysql://database-2.cehjlxxknfu2.us-east-1.rds.amazonaws.com:3306/";
-  private static final String dbName = "db_for_a2";
-  private static final String userName = "wenhua";
-  private static final String password = "12345678";
+//  private static final String driver = "com.mysql.cj.jdbc.Driver";
+//  private static final String url =
+//      "jdbc:mysql://database-2.cehjlxxknfu2.us-east-1.rds.amazonaws.com:3306/";
+//  private static final String dbName = "db_for_a2";
+//  private static final String userName = "wenhua";
+//  private static final String password = "12345678";
 
   private static final String INSERT_NEW_LIFTRIDE_SQL =
       "INSERT INTO LiftRides (liftRideID, resortID, dayID, vertical, skierID, time) values (?, ?, ?, ?, ?, ?);";
@@ -29,33 +29,6 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
       "SELECT IFNULL(SUM(vertical), 0) skier_resort_totals FROM LiftRides where skierID =? AND resortID=?;";
   private static final String GET_SKIER_DAY_VERTICAL_SQL =
       "SELECT IFNULL(sum(vertical), 0) skier_day_vertical FROM LiftRides where skierID =? AND resortID=? AND dayID=?;";
-
-  public void init() throws ServletException {
-    try {
-      Class.forName(driver);
-    } catch (ClassNotFoundException e) {
-      //TODO logger logout the exception
-      e.printStackTrace();
-    }
-
-    try {
-      conn = DriverManager.getConnection(url + dbName, userName, password);
-    } catch (SQLException e) {
-      // TODo log exception out
-      e.printStackTrace();
-    }
-  }
-
-  public void destroy() {
-    try {
-      if (conn != null) {
-        conn.close();
-      }
-    } catch (SQLException se) {
-      // TODO logger
-      System.out.println("SQLException: " + se.getMessage());
-    }
-  }
 
   protected void doPost(HttpServletRequest request,
       HttpServletResponse response)
@@ -75,23 +48,7 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     }
 
     LiftRide liftRide = new Gson().fromJson(request.getReader(), LiftRide.class);
-    try {
-      PreparedStatement ps = conn.prepareStatement(INSERT_NEW_LIFTRIDE_SQL);
-
-      String primaryKey = UUID.randomUUID().toString();
-
-      ps.setString(1, primaryKey);
-      ps.setString(2, liftRide.getResortID());
-      ps.setString(3, liftRide.getDayID());
-      ps.setInt(4, Integer.parseInt(liftRide.getLiftID()) * 10);
-      ps.setString(5, liftRide.getSkierID());
-      ps.setString(6, liftRide.getTime());
-
-      ps.executeUpdate();
-    } catch (SQLException e) {
-      //todo log
-      e.printStackTrace();
-    }
+    liftRideDao.createLiftRide(liftRide);
 
     response.setStatus(HttpServletResponse.SC_CREATED);
   }
@@ -116,64 +73,25 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
 
     if (isGetTotalVerticalForSpecifiedResortsUrlValid(urlPath)) {
       // /skiers/{skierID}/vertical
-      res.setStatus(HttpServletResponse.SC_OK);
-
       String skierID = urlParts[1];
       String resortId = req.getParameterMap().get("resort")[0];
-      SkierVertical skierVertical = new SkierVertical();
 
-      try {
-        PreparedStatement ps = conn.prepareStatement(GET_SKIER_RESORT_TOTALS_SQL);
+      SkierVertical skierVertical = liftRideDao.getSkierResortTotals(skierID, resortId);
 
-        ps.setString(1, skierID);
-        ps.setString(2, resortId);
-
-        ResultSet rs = ps.executeQuery();
-
-        if (!rs.next()) {
-          // todo log something
-        } {
-          rs.first();
-          skierVertical.setTotalVert(rs.getInt("skier_resort_totals"));
-        }
-      } catch (SQLException e) {
-        //todo log
-        e.printStackTrace();
-      }
-      skierVertical.setResortID(resortId);
       res.getWriter().write(gson.toJson(skierVertical));
+      res.setStatus(HttpServletResponse.SC_OK);
     } else if (isGetTotalVerticalForTheDayUrlValid(urlPath)) {
       // /skiers/{resortID}/days/{dayID}/skiers/{skierID}
-      res.setStatus(HttpServletResponse.SC_OK);
-
-      SkierVertical skierVertical = new SkierVertical();
       String resortId = urlParts[1];
       String dayId = urlParts[3];
       String skierId = urlParts[5];
-      try {
-        PreparedStatement ps = conn.prepareStatement(GET_SKIER_DAY_VERTICAL_SQL);
 
-        ps.setString(1, skierId);
-        ps.setString(2, resortId);
-        ps.setString(3, dayId);
-
-        ResultSet rs = ps.executeQuery();
-        if (!rs.next()) {
-          // TODo logout somethings wrong in db
-        } else {
-          rs.first();
-          skierVertical.setTotalVert(rs.getInt("skier_day_vertical"));
-        }
-      } catch (SQLException e) {
-        // TODO log
-        e.printStackTrace();
-      }
-
-      skierVertical.setResortID(resortId);
+      SkierVertical skierVertical = liftRideDao.getSkierDayVertical(skierId, resortId, dayId);
 
       res.getWriter().write(gson.toJson(skierVertical));
+      res.setStatus(HttpServletResponse.SC_OK);
     } else {
-      res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+      res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
       invalidReturnMessage = new InvalidReturnMessage();
       invalidReturnMessage.setMessage("Invalid request.");
