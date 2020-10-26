@@ -4,6 +4,7 @@ import io.swagger.client.api.SkiersApi;
 import io.swagger.client.model.LiftRide;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 public class TaskForClientPart2 implements Runnable {
   private static final Logger logger = LogManager.getLogger(TaskForClientPart2.class);
 
-  private List<String> resultList;
+  private BlockingQueue<List<String>> blockingQueue;
   private int skierIdStart;
   private int skierIdEnd;
   private int liftIdRange;
@@ -25,11 +26,11 @@ public class TaskForClientPart2 implements Runnable {
   private CountDownLatch totalLatch;
   private String address;
 
-  public TaskForClientPart2(List<String> resultList, int skierIdStart, int skierIdEnd,
+  public TaskForClientPart2(BlockingQueue<List<String>> blockingQueue, int skierIdStart, int skierIdEnd,
       int liftIdRange, int timeStart, int timeEnd,
       String resortId, String skiDayNumber, int numPost, int numGet,
       CountDownLatch tenPctLatch, CountDownLatch totalLatch, String address) {
-    this.resultList = resultList;
+    this.blockingQueue = blockingQueue;
     this.skierIdStart = skierIdStart;
     this.skierIdEnd = skierIdEnd;
     this.liftIdRange = liftIdRange;
@@ -45,13 +46,14 @@ public class TaskForClientPart2 implements Runnable {
   }
 
   private void sendRequests() {
+    List<String> localRecord = new ArrayList<>();
     SkiersApi skiersApi = new SkiersApi();
     skiersApi.getApiClient().setBasePath(address);
     int successCnt = 0;
     int failureCnt = 0;
     boolean isSuccessful;
     for (int i = 0; i < numPost; i++) {
-      isSuccessful = sendPost(skiersApi);
+      isSuccessful = sendPost(skiersApi, localRecord);
       if (isSuccessful) {
         successCnt += 1;
       } else {
@@ -60,7 +62,7 @@ public class TaskForClientPart2 implements Runnable {
     }
 
     for (int i = 0; i < numGet; i++) {
-      isSuccessful = sendGet(skiersApi);
+      isSuccessful = sendGet(skiersApi, localRecord);
       if (isSuccessful) {
         successCnt += 1;
       } else {
@@ -68,11 +70,17 @@ public class TaskForClientPart2 implements Runnable {
       }
     }
 
+    try {
+      blockingQueue.put(localRecord);
+    } catch (InterruptedException e) {
+      logger.error(e);
+    }
+
     ClientPart2.sharedRequestCountAtomic.numSuccessAtomic.addAndGet(successCnt);
     ClientPart2.sharedRequestCountAtomic.numFailureAtomic.addAndGet(failureCnt);
   }
 
-  private boolean sendPost(SkiersApi skiersApi) {
+  private boolean sendPost(SkiersApi skiersApi, List<String> localRecord) {
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     String liftId = getRandomLiftId(liftIdRange);
     String time = getRandomTime(timeStart, timeEnd);
@@ -95,7 +103,7 @@ public class TaskForClientPart2 implements Runnable {
       }
       long endTime = System.currentTimeMillis();
       long latency = endTime - startTime;
-      resultList.add(startTime + "," + "POST" + "," + latency + "," + e.getCode());
+      localRecord.add(startTime + "," + "POST" + "," + latency + "," + e.getCode());
       return false;
     }
 
@@ -107,12 +115,12 @@ public class TaskForClientPart2 implements Runnable {
     long latency = endTime - startTime;
 
     int code = apiResponse.getStatusCode();
-    resultList.add(startTime + "," + "POST" + "," + latency + "," + code);
+    localRecord.add(startTime + "," + "POST" + "," + latency + "," + code);
 
     return code == 201 || code == 200;
   }
 
-  private boolean sendGet(SkiersApi skiersApi) {
+  private boolean sendGet(SkiersApi skiersApi, List<String> localRecord) {
     // Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     ApiResponse<io.swagger.client.model.SkierVertical> apiResponse = null;
@@ -127,7 +135,7 @@ public class TaskForClientPart2 implements Runnable {
       }
       long endTime = System.currentTimeMillis();
       long latency = endTime - startTime;
-      resultList.add(startTime + "," + "GET" + "," + latency + "," + e.getCode());
+      localRecord.add(startTime + "," + "GET" + "," + latency + "," + e.getCode());
       return false;
     }
 
@@ -139,7 +147,7 @@ public class TaskForClientPart2 implements Runnable {
 
     int code = apiResponse.getStatusCode();
 
-    resultList.add(startTime + "," + "GET" + "," + latency + "," + code);
+    localRecord.add(startTime + "," + "GET" + "," + latency + "," + code);
 
     return code == 200 || code == 201;
   }

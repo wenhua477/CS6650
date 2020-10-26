@@ -1,10 +1,15 @@
-import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientPart2 {
@@ -56,7 +61,11 @@ public class ClientPart2 {
     int skierIdStart;
     int skierIdEnd = 0;
 
-    List<String> resultList = Collections.synchronizedList(new ArrayList<String>());
+    BlockingQueue<List<String>> blockingQueue = new LinkedBlockingDeque<>();
+    AtomicBoolean allPhaseFinished = new AtomicBoolean(false);
+    Runnable blockingQueueConsumer = new BlockingQueueConsumer(blockingQueue, maxThreads,
+        allPhaseFinished);
+    new Thread(blockingQueueConsumer).start();
 
     long startTimeInMillSec = System.currentTimeMillis();
 
@@ -68,7 +77,7 @@ public class ClientPart2 {
       } else {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
-      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts,
+      Runnable th = new TaskForClientPart2(blockingQueue, skierIdStart, skierIdEnd, numLifts,
           START_TIME_PHASE_1,
           END_TIME_PHASE_1,
           resortID, skiDayId, NUM_POST_PHASE_1, NUM_GET_PHASE_1, phase1LatchTenPct,
@@ -93,7 +102,7 @@ public class ClientPart2 {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
 
-      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts,
+      Runnable th = new TaskForClientPart2(blockingQueue, skierIdStart, skierIdEnd, numLifts,
           START_TIME_PHASE_2,
           END_TIME_PHASE_2,
           resortID, skiDayId, NUM_POST_PHASE_2, NUM_GET_PHASE_2, phase2LatchTenPct,
@@ -116,7 +125,7 @@ public class ClientPart2 {
       } else {
         skierIdEnd = skierIdStart + numOfSkierIdsPerThread - 1;
       }
-      Runnable th = new TaskForClientPart2(resultList, skierIdStart, skierIdEnd, numLifts,
+      Runnable th = new TaskForClientPart2(blockingQueue, skierIdStart, skierIdEnd, numLifts,
           START_TIME_PHASE_3,
           END_TIME_PHASE_3,
           resortID, skiDayId, NUM_POST_PHASE_3, NUM_GET_PHASE_3, null,
@@ -127,6 +136,8 @@ public class ClientPart2 {
     phase1LatchAll.await();
     phase2LatchAll.await();
     phase3LatchAll.await();
+
+    allPhaseFinished.set(true);
 
     long endTimeInMillSec = System.currentTimeMillis();
     int numOfSuccess = sharedRequestCountAtomic.numSuccessAtomic.get();
@@ -141,29 +152,66 @@ public class ClientPart2 {
             + "Throughput= %s.", numOfSuccess, numOfFailure, numOfFailure + numOfSuccess,
         wallTimeInSec, throughPut));
 
-    FileWriter csvWriter = new FileWriter(String.format("%s_threads.csv", maxThreads));
-    csvWriter.append("StartTime,RequestType,Latency,ResponseCode\n");
+    // Read csv files from desk and process data
+    BufferedReader csvReader = new BufferedReader(
+        new FileReader(String.format("%s_threads.csv", maxThreads)));
+    String row = csvReader.readLine();
 
-    List<CsvRecord> csvRecordsForGet = new LinkedList<CsvRecord>();
-    List<CsvRecord> csvRecordsForPost = new LinkedList<CsvRecord>();
-    List<CsvRecord> csvRecordsTotal = new LinkedList<>();
-    for (String res : resultList) {
-      csvWriter.append(res);
-      csvWriter.append("\n");
-      if (res.contains("GET")) {
-        csvRecordsForGet.add(new CsvRecord(res));
-      } else {
-        csvRecordsForPost.add(new CsvRecord(res));
+    long getRequestLatencySum = 0;
+    long postRequestLatencySum = 0;
+    long totalRequestLatencySum = 0;
+
+    int getRequestCount = 0;
+    int postRequestCount = 0;
+    int totalRequestCount = 0;
+
+    int maxGetRequestLatency = 0;
+    int maxPostRequestLatency = 0;
+    int maxTotalRequestLatency = 0;
+
+    Map<Integer, Integer> getRequestLatencyCountMap = new HashMap<>();
+    Map<Integer, Integer> postRequestLatencyCountMap = new HashMap<>();
+    Map<Integer, Integer> totalRequestLatencyCountMap = new HashMap<>();
+
+    while ((row = csvReader.readLine()) != null) {
+      CsvRecord csvRecord = new CsvRecord(row);
+      int latency = csvRecord.getLatency();
+      String requestType = csvRecord.getType();
+      if (requestType.equals("GET")) {
+        getRequestCount += 1;
+        getRequestLatencySum += latency;
+        maxGetRequestLatency = Math.max(maxGetRequestLatency, latency);
+        if (getRequestLatencyCountMap.containsKey(latency)) {
+          getRequestLatencyCountMap.put(latency, getRequestLatencyCountMap.get(latency) + 1);
+        } else {
+          getRequestLatencyCountMap.put(latency, 1);
+        }
+      } else if (requestType.equals("POST")) {
+        postRequestCount += 1;
+        postRequestLatencySum += latency;
+        maxPostRequestLatency = Math.max(maxPostRequestLatency, latency);
+        if (postRequestLatencyCountMap.containsKey(latency)) {
+          postRequestLatencyCountMap.put(latency, postRequestLatencyCountMap.get(latency) + 1);
+        } else {
+          postRequestLatencyCountMap.put(latency, 1);
+        }
       }
-      csvRecordsTotal.add(new CsvRecord(res));
+
+      totalRequestCount += 1;
+      totalRequestLatencySum += latency;
+      maxTotalRequestLatency = Math.max(maxTotalRequestLatency, latency);
+      if (totalRequestLatencyCountMap.containsKey(latency)) {
+        totalRequestLatencyCountMap.put(latency, totalRequestLatencyCountMap.get(latency) + 1);
+      } else {
+        totalRequestLatencyCountMap.put(latency, 1);
+      }
     }
-    csvWriter.flush();
-    csvWriter.close();
+    csvReader.close();
 
     // Calculate mean, median and max value of each request latencies
-    Statistics statForPost = calculateStatistics(csvRecordsForPost);
-    Statistics statForGet = calculateStatistics(csvRecordsForGet);
-    Statistics statForTotal = calculateStatistics(csvRecordsTotal);
+    Statistics statForPost = calculateStatistics(postRequestLatencySum, postRequestCount, maxPostRequestLatency, postRequestLatencyCountMap);
+    Statistics statForGet = calculateStatistics(getRequestLatencySum, getRequestCount, maxGetRequestLatency, getRequestLatencyCountMap);
+    Statistics statForTotal = calculateStatistics(totalRequestLatencySum, totalRequestCount, maxTotalRequestLatency, totalRequestLatencyCountMap);
 
     System.out.println("\n");
     System.out.println(String.format(
@@ -187,6 +235,47 @@ public class ClientPart2 {
         statForPost.getMax(),
         statForTotal.getMean(), statForTotal.getMedian(), statForTotal.getP99(),
         statForTotal.getMax()));
+  }
+
+
+  private static Statistics calculateStatistics(long sum, int count, int maxLatency,
+      Map<Integer, Integer> countMap) {
+    Statistics statistics = new Statistics();
+    statistics.setMax(maxLatency);
+    statistics.setMean((double) sum / count);
+    List<Integer> keyList = new ArrayList<>(countMap.keySet());
+    Collections.sort(keyList);
+
+    int medianPos = count % 2 == 1 ? count / 2 + 1 : count / 2;
+    boolean medianWithAverage = count % 2 == 0;
+    int p99Pos = (int) (count * 0.99);
+
+    boolean medianAlreadySet = false;
+
+    int numCount = 0;
+    for (int i = 0; i < keyList.size(); i++) {
+      numCount += countMap.get(keyList.get(i));
+      if (numCount >= p99Pos) {
+        statistics.setP99(keyList.get(i));
+        break;
+      }
+      if (!medianAlreadySet && numCount >= medianPos) {
+        if (!medianWithAverage) {
+          statistics.setMedian(keyList.get(i));
+          medianAlreadySet = true;
+        } else {
+          if (numCount == medianPos) {
+            statistics.setMedian((double) (keyList.get(i) + keyList.get(i + 1)) / 2);
+            medianAlreadySet = true;
+          } else {
+            statistics.setMedian(keyList.get(i));
+            medianAlreadySet = true;
+          }
+        }
+      }
+    }
+
+    return statistics;
   }
 
   private static Statistics calculateStatistics(List<CsvRecord> csvRecords) {

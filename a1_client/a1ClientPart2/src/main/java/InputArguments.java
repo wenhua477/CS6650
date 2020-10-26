@@ -5,7 +5,7 @@ public class InputArguments {
   private static final String DEFAULT_SKI_DAY_NUMBER = "1";
   private static final String DEFAULT_RESORT_NAME = "SilverMt";
 
-  private static final int MAX_THREADS = 256;
+  private static final int MAX_THREADS = 512;
   private static final int MIN_NUM_LIFTS = 5;
   private static final int MAX_NUM_LIFTS = 60;
 
