@@ -197,28 +197,28 @@ public class ClientPart2 {
     System.out.println(String.format(
         "Total wall time=%s,\n"
             + "Throughput=%s,\n"
-            + "Mean response time for GetSkierResortTotalsApi=%s,\n"
-            + "Median response time for GetSkierResortTotalsApi=%s,\n"
-            + "P99 response time for GetSkierResortTotalsApi=%s,\n"
-            + "Max response time for GetSkierResortTotalsApi=%s.\n"
+            + "Mean response time for GetSkierResortTotalsApi=%s milliseconds,\n"
+            + "Median response time for GetSkierResortTotalsApi=%s milliseconds,\n"
+            + "P99 response time for GetSkierResortTotalsApi=%s milliseconds,\n"
+            + "Max response time for GetSkierResortTotalsApi=%s milliseconds.\n"
             + "\n"
 
-            + "Mean response time for GetSkierDayVerticalApi=%s,\n"
-            + "Median response time for GetSkierDayVerticalApi=%s,\n"
-            + "P99 response time for GetSkierDayVerticalApi=%s,\n"
-            + "Max response time for GetSkierDayVerticalApi=%s.\n"
+            + "Mean response time for GetSkierDayVerticalApi=%s milliseconds,\n"
+            + "Median response time for GetSkierDayVerticalApi=%s milliseconds,\n"
+            + "P99 response time for GetSkierDayVerticalApi=%s milliseconds,\n"
+            + "Max response time for GetSkierDayVerticalApi=%s milliseconds.\n"
             + "\n"
 
-            + "Mean response time for POST=%s,\n"
-            + "Median response time for POST=%s,\n"
-            + "P99 response time for POST=%s,\n"
-            + "Max response time for POST=%s.\n"
+            + "Mean response time for POST=%s milliseconds,\n"
+            + "Median response time for POST=%s milliseconds,\n"
+            + "P99 response time for POST=%s milliseconds,\n"
+            + "Max response time for POST=%s milliseconds.\n"
             + "\n"
 
-            + "Mean response time for Total=%s,\n"
-            + "Median response time for Total=%s,\n"
-            + "P99 response time for Total=%s,\n"
-            + "Max response time for Total=%s.\n",
+            + "Mean response time for Total=%s milliseconds,\n"
+            + "Median response time for Total=%s milliseconds,\n"
+            + "P99 response time for Total=%s milliseconds,\n"
+            + "Max response time for Total=%s milliseconds.\n",
         wallTimeInSec, throughPut,
         statForGetSkierResortTotalsApi.getMean(), statForGetSkierResortTotalsApi.getMedian(),
         statForGetSkierResortTotalsApi.getP99(), statForGetSkierResortTotalsApi.getMax(),
