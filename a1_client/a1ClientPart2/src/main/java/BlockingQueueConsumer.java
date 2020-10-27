@@ -2,6 +2,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
@@ -13,12 +14,14 @@ public class BlockingQueueConsumer implements Runnable{
   private BlockingQueue<List<String>> blockingQueue;
   private int maxThreads;
   private AtomicBoolean allPhaseFinished;
+  private CountDownLatch blockingQueueConsumerLatch;
 
   public BlockingQueueConsumer(
-      BlockingQueue<List<String>> blockingQueue, int maxThreads, AtomicBoolean allPhaseFinished) {
+      BlockingQueue<List<String>> blockingQueue, int maxThreads, AtomicBoolean allPhaseFinished, CountDownLatch blockingQueueConsumerLatch) {
     this.blockingQueue = blockingQueue;
     this.maxThreads = maxThreads;
     this.allPhaseFinished = allPhaseFinished;
+    this.blockingQueueConsumerLatch = blockingQueueConsumerLatch;
   }
 
 
@@ -53,5 +56,6 @@ public class BlockingQueueConsumer implements Runnable{
     } catch (IOException | InterruptedException e) {
       logger.error(e);
     }
+    blockingQueueConsumerLatch.countDown();
   }
 }

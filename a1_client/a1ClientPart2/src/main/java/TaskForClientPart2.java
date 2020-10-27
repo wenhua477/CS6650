@@ -3,6 +3,7 @@ import io.swagger.client.ApiResponse;
 import io.swagger.client.api.SkiersApi;
 import io.swagger.client.model.LiftRide;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -10,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class TaskForClientPart2 implements Runnable {
+
   private static final Logger logger = LogManager.getLogger(TaskForClientPart2.class);
 
   private BlockingQueue<List<String>> blockingQueue;
@@ -26,7 +28,8 @@ public class TaskForClientPart2 implements Runnable {
   private CountDownLatch totalLatch;
   private String address;
 
-  public TaskForClientPart2(BlockingQueue<List<String>> blockingQueue, int skierIdStart, int skierIdEnd,
+  public TaskForClientPart2(BlockingQueue<List<String>> blockingQueue, int skierIdStart,
+      int skierIdEnd,
       int liftIdRange, int timeStart, int timeEnd,
       String resortId, String skiDayNumber, int numPost, int numGet,
       CountDownLatch tenPctLatch, CountDownLatch totalLatch, String address) {
@@ -62,11 +65,23 @@ public class TaskForClientPart2 implements Runnable {
     }
 
     for (int i = 0; i < numGet; i++) {
-      isSuccessful = sendGet(skiersApi, localRecord);
+      isSuccessful = sendGetSkierDayVertical(skiersApi, localRecord);
       if (isSuccessful) {
         successCnt += 1;
       } else {
         failureCnt += 1;
+      }
+    }
+
+    // If numGet == 10, then it is phase3, we call both GET api 10 times
+    if (numGet == 10) {
+      for (int i = 0; i < numGet; i++) {
+        isSuccessful = sendGetSkierResortTotals(skiersApi, localRecord);
+        if (isSuccessful) {
+          successCnt += 1;
+        } else {
+          failureCnt += 1;
+        }
       }
     }
 
@@ -120,7 +135,7 @@ public class TaskForClientPart2 implements Runnable {
     return code == 201 || code == 200;
   }
 
-  private boolean sendGet(SkiersApi skiersApi, List<String> localRecord) {
+  private boolean sendGetSkierDayVertical(SkiersApi skiersApi, List<String> localRecord) {
     // Each GET randomly selects a skierID and calls /skiers/{resortID}/days/{dayID}/skiers/{skierID}
     String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
     ApiResponse<io.swagger.client.model.SkierVertical> apiResponse = null;
@@ -135,7 +150,7 @@ public class TaskForClientPart2 implements Runnable {
       }
       long endTime = System.currentTimeMillis();
       long latency = endTime - startTime;
-      localRecord.add(startTime + "," + "GET" + "," + latency + "," + e.getCode());
+      localRecord.add(startTime + "," + "GetSkierDayVertical" + "," + latency + "," + e.getCode());
       return false;
     }
 
@@ -147,7 +162,39 @@ public class TaskForClientPart2 implements Runnable {
 
     int code = apiResponse.getStatusCode();
 
-    localRecord.add(startTime + "," + "GET" + "," + latency + "," + code);
+    localRecord.add(startTime + "," + "GetSkierDayVertical" + "," + latency + "," + code);
+
+    return code == 200 || code == 201;
+  }
+
+  private boolean sendGetSkierResortTotals(SkiersApi skiersApi, List<String> localRecord) {
+    String skierId = getRandomSkierId(skierIdStart, skierIdEnd);
+    ApiResponse<io.swagger.client.model.SkierVertical> apiResponse = null;
+    long startTime = System.currentTimeMillis();
+    try {
+      apiResponse = skiersApi.getSkierResortTotalsWithHttpInfo(skierId,
+          Collections.singletonList(resortId));
+    } catch (ApiException e) {
+      int errorCode = e.getCode();
+      logger.error(e);
+      if (errorCode / 100 == 4 || errorCode / 100 == 5) {
+        logger.info("Error code: %s,\n, responseBody=%s.", errorCode, e.getResponseBody());
+      }
+      long endTime = System.currentTimeMillis();
+      long latency = endTime - startTime;
+      localRecord.add(startTime + "," + "GetSkierResortTotals" + "," + latency + "," + e.getCode());
+      return false;
+    }
+
+    if (apiResponse == null) {
+      return false;
+    }
+    long endTime = System.currentTimeMillis();
+    long latency = endTime - startTime;
+
+    int code = apiResponse.getStatusCode();
+
+    localRecord.add(startTime + "," + "GetSkierResortTotals" + "," + latency + "," + code);
 
     return code == 200 || code == 201;
   }

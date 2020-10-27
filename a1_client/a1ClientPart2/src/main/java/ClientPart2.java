@@ -1,7 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -15,11 +14,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ClientPart2 {
 
   private static final int NUM_GET_PHASE_1 = 5;
-  private static final int NUM_POST_PHASE_1 = 100;
+  private static final int NUM_POST_PHASE_1 = 1000;
   private static final int NUM_GET_PHASE_2 = 5;
-  private static final int NUM_POST_PHASE_2 = 100;
+  private static final int NUM_POST_PHASE_2 = 1000;
   private static final int NUM_GET_PHASE_3 = 10;
-  private static final int NUM_POST_PHASE_3 = 100;
+  private static final int NUM_POST_PHASE_3 = 1000;
 
   private static final int START_TIME_PHASE_1 = 1;
   private static final int END_TIME_PHASE_1 = 90;
@@ -61,10 +60,11 @@ public class ClientPart2 {
     int skierIdStart;
     int skierIdEnd = 0;
 
+    CountDownLatch blockingQueueConsumerLatch = new CountDownLatch(1);
     BlockingQueue<List<String>> blockingQueue = new LinkedBlockingDeque<>();
     AtomicBoolean allPhaseFinished = new AtomicBoolean(false);
     Runnable blockingQueueConsumer = new BlockingQueueConsumer(blockingQueue, maxThreads,
-        allPhaseFinished);
+        allPhaseFinished, blockingQueueConsumerLatch);
     new Thread(blockingQueueConsumer).start();
 
     long startTimeInMillSec = System.currentTimeMillis();
@@ -137,7 +137,9 @@ public class ClientPart2 {
     phase2LatchAll.await();
     phase3LatchAll.await();
 
+    // wait for all data in blockingQueue got processed
     allPhaseFinished.set(true);
+    blockingQueueConsumerLatch.await();
 
     long endTimeInMillSec = System.currentTimeMillis();
     int numOfSuccess = sharedRequestCountAtomic.numSuccessAtomic.get();
@@ -157,89 +159,97 @@ public class ClientPart2 {
         new FileReader(String.format("%s_threads.csv", maxThreads)));
     String row = csvReader.readLine();
 
-    long getRequestLatencySum = 0;
-    long postRequestLatencySum = 0;
-    long totalRequestLatencySum = 0;
+    APIDataObject getSkierDayVerticalApiObj = new APIDataObject(0L, 0,
+        0, new HashMap<>());
 
-    int getRequestCount = 0;
-    int postRequestCount = 0;
-    int totalRequestCount = 0;
+    APIDataObject getSkierResortTotalsApiObj = new APIDataObject(0L, 0,
+        0, new HashMap<>());
 
-    int maxGetRequestLatency = 0;
-    int maxPostRequestLatency = 0;
-    int maxTotalRequestLatency = 0;
+    APIDataObject postApiObj = new APIDataObject(0L, 0,
+        0, new HashMap<>());
 
-    Map<Integer, Integer> getRequestLatencyCountMap = new HashMap<>();
-    Map<Integer, Integer> postRequestLatencyCountMap = new HashMap<>();
-    Map<Integer, Integer> totalRequestLatencyCountMap = new HashMap<>();
+    APIDataObject totalApiObj = new APIDataObject(0L, 0,
+        0, new HashMap<>());
 
     while ((row = csvReader.readLine()) != null) {
       CsvRecord csvRecord = new CsvRecord(row);
       int latency = csvRecord.getLatency();
       String requestType = csvRecord.getType();
-      if (requestType.equals("GET")) {
-        getRequestCount += 1;
-        getRequestLatencySum += latency;
-        maxGetRequestLatency = Math.max(maxGetRequestLatency, latency);
-        if (getRequestLatencyCountMap.containsKey(latency)) {
-          getRequestLatencyCountMap.put(latency, getRequestLatencyCountMap.get(latency) + 1);
-        } else {
-          getRequestLatencyCountMap.put(latency, 1);
-        }
+      if (requestType.equals("GetSkierDayVertical")) {
+        processDataHelper(latency, getSkierDayVerticalApiObj);
+      } else if (requestType.equals("GetSkierResortTotals")) {
+        processDataHelper(latency, getSkierResortTotalsApiObj);
       } else if (requestType.equals("POST")) {
-        postRequestCount += 1;
-        postRequestLatencySum += latency;
-        maxPostRequestLatency = Math.max(maxPostRequestLatency, latency);
-        if (postRequestLatencyCountMap.containsKey(latency)) {
-          postRequestLatencyCountMap.put(latency, postRequestLatencyCountMap.get(latency) + 1);
-        } else {
-          postRequestLatencyCountMap.put(latency, 1);
-        }
+        processDataHelper(latency, postApiObj);
       }
 
-      totalRequestCount += 1;
-      totalRequestLatencySum += latency;
-      maxTotalRequestLatency = Math.max(maxTotalRequestLatency, latency);
-      if (totalRequestLatencyCountMap.containsKey(latency)) {
-        totalRequestLatencyCountMap.put(latency, totalRequestLatencyCountMap.get(latency) + 1);
-      } else {
-        totalRequestLatencyCountMap.put(latency, 1);
-      }
+      processDataHelper(latency, totalApiObj);
     }
     csvReader.close();
 
     // Calculate mean, median and max value of each request latencies
-    Statistics statForPost = calculateStatistics(postRequestLatencySum, postRequestCount, maxPostRequestLatency, postRequestLatencyCountMap);
-    Statistics statForGet = calculateStatistics(getRequestLatencySum, getRequestCount, maxGetRequestLatency, getRequestLatencyCountMap);
-    Statistics statForTotal = calculateStatistics(totalRequestLatencySum, totalRequestCount, maxTotalRequestLatency, totalRequestLatencyCountMap);
+    Statistics statForPostApi = calculateStatistics(postApiObj);
+    Statistics statForGetSkierResortTotalsApi = calculateStatistics(getSkierResortTotalsApiObj);
+    Statistics statForGetSkierDayVerticalApi = calculateStatistics(getSkierDayVerticalApiObj);
+    Statistics statForTotal = calculateStatistics(totalApiObj);
 
     System.out.println("\n");
     System.out.println(String.format(
         "Total wall time=%s,\n"
             + "Throughput=%s,\n"
-            + "Mean response time for GET=%s,\n"
-            + "Median response time for GET=%s,\n"
-            + "P99 response time for GET=%s,\n"
-            + "Max response time for GET=%s.\n"
+            + "Mean response time for GetSkierResortTotalsApi=%s,\n"
+            + "Median response time for GetSkierResortTotalsApi=%s,\n"
+            + "P99 response time for GetSkierResortTotalsApi=%s,\n"
+            + "Max response time for GetSkierResortTotalsApi=%s.\n"
+            + "\n"
+
+            + "Mean response time for GetSkierDayVerticalApi=%s,\n"
+            + "Median response time for GetSkierDayVerticalApi=%s,\n"
+            + "P99 response time for GetSkierDayVerticalApi=%s,\n"
+            + "Max response time for GetSkierDayVerticalApi=%s.\n"
+            + "\n"
+
             + "Mean response time for POST=%s,\n"
             + "Median response time for POST=%s,\n"
             + "P99 response time for POST=%s,\n"
             + "Max response time for POST=%s.\n"
+            + "\n"
+
             + "Mean response time for Total=%s,\n"
             + "Median response time for Total=%s,\n"
             + "P99 response time for Total=%s,\n"
             + "Max response time for Total=%s.\n",
         wallTimeInSec, throughPut,
-        statForGet.getMean(), statForGet.getMedian(), statForGet.getP99(), statForGet.getMax(),
-        statForPost.getMean(), statForPost.getMedian(), statForPost.getP99(),
-        statForPost.getMax(),
+        statForGetSkierResortTotalsApi.getMean(), statForGetSkierResortTotalsApi.getMedian(),
+        statForGetSkierResortTotalsApi.getP99(), statForGetSkierResortTotalsApi.getMax(),
+        statForGetSkierDayVerticalApi.getMean(), statForGetSkierDayVerticalApi.getMedian(),
+        statForGetSkierDayVerticalApi.getP99(), statForGetSkierDayVerticalApi.getMax(),
+        statForPostApi.getMean(), statForPostApi.getMedian(), statForPostApi.getP99(),
+        statForPostApi.getMax(),
         statForTotal.getMean(), statForTotal.getMedian(), statForTotal.getP99(),
         statForTotal.getMax()));
   }
 
 
-  private static Statistics calculateStatistics(long sum, int count, int maxLatency,
-      Map<Integer, Integer> countMap) {
+  private static void processDataHelper(int latency, APIDataObject apiDataObject) {
+    apiDataObject.setRequestCount(apiDataObject.getRequestCount() + 1);
+    apiDataObject.setLatencySum(apiDataObject.getLatencySum() + latency);
+    apiDataObject.setMaxLatency(Math.max(apiDataObject.getMaxLatency(), latency));
+    if (apiDataObject.getLatencyCountmap().containsKey(latency)) {
+      apiDataObject.getLatencyCountmap()
+          .put(latency, apiDataObject.getLatencyCountmap().get(latency) + 1);
+    } else {
+      apiDataObject.getLatencyCountmap().put(latency, 1);
+    }
+  }
+
+
+  private static Statistics calculateStatistics(APIDataObject apiDataObject) {
+    long sum = apiDataObject.getLatencySum();
+    int count = apiDataObject.getRequestCount();
+    int maxLatency = apiDataObject.getMaxLatency();
+    Map<Integer, Integer> countMap = apiDataObject.getLatencyCountmap();
+
     Statistics statistics = new Statistics();
     statistics.setMax(maxLatency);
     statistics.setMean((double) sum / count);
@@ -275,38 +285,6 @@ public class ClientPart2 {
       }
     }
 
-    return statistics;
-  }
-
-  private static Statistics calculateStatistics(List<CsvRecord> csvRecords) {
-    int[] latencies = new int[csvRecords.size()];
-    for (int i = 0; i < csvRecords.size(); i++) {
-      latencies[i] = csvRecords.get(i).getLatency();
-    }
-    // Calculate mean
-    double mean = Arrays.stream(latencies).average().orElse(Double.NaN);
-    // Calculate median
-    double median;
-    Arrays.sort(latencies);
-    if (latencies.length % 2 == 0) {
-      median =
-          ((double) latencies[latencies.length / 2] + (double) latencies[latencies.length / 2 - 1])
-              / 2;
-    } else {
-      median = (double) latencies[latencies.length / 2];
-    }
-
-    // Get max latency
-    double maxLatency = latencies[latencies.length - 1];
-
-    // Calculate p99
-    double p99Latency = latencies[(int) (latencies.length * 0.99)];
-
-    Statistics statistics = new Statistics();
-    statistics.setMean(mean);
-    statistics.setMedian(median);
-    statistics.setMax(maxLatency);
-    statistics.setP99(p99Latency);
     return statistics;
   }
 }
