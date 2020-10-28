@@ -2,33 +2,13 @@ import com.google.gson.Gson;
 import io.swagger.client.model.LiftRide;
 import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
-import java.sql.Connection;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class SkierServlet extends javax.servlet.http.HttpServlet {
 
-  private static final Logger logger = LogManager.getLogger(SkierServlet.class);
   private final LiftRideDao liftRideDao = new LiftRideDao();
-
-  private static Connection conn = null;
-
-//  private static final String driver = "com.mysql.cj.jdbc.Driver";
-//  private static final String url =
-//      "jdbc:mysql://database-2.cehjlxxknfu2.us-east-1.rds.amazonaws.com:3306/";
-//  private static final String dbName = "db_for_a2";
-//  private static final String userName = "wenhua";
-//  private static final String password = "12345678";
-
-  private static final String INSERT_NEW_LIFTRIDE_SQL =
-      "INSERT INTO LiftRides (liftRideID, resortID, dayID, vertical, skierID, time) values (?, ?, ?, ?, ?, ?);";
-  private static final String GET_SKIER_RESORT_TOTALS_SQL =
-      "SELECT IFNULL(SUM(vertical), 0) skier_resort_totals FROM LiftRides where skierID =? AND resortID=?;";
-  private static final String GET_SKIER_DAY_VERTICAL_SQL =
-      "SELECT IFNULL(sum(vertical), 0) skier_day_vertical FROM LiftRides where skierID =? AND resortID=? AND dayID=?;";
 
   protected void doPost(HttpServletRequest request,
       HttpServletResponse response)
