@@ -1,12 +1,37 @@
 import com.google.gson.Gson;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import io.swagger.client.model.LiftRide;
 import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class SkierServlet extends javax.servlet.http.HttpServlet {
+
+  private static final String QUEUE_NAME = "RabbitMQ for assignment 3";
+
+  private static Connection connection;
+
+  public void init() {
+    // initialize the connection (this is the socket, so slow)
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setUsername(System.getProperty("DB_USERNAME"));
+    factory.setPassword(System.getProperty("DB_PASSWORD"));
+    factory.setVirtualHost("/"); // I think this is the default "virtual host"
+    factory.setHost("ec2-52-91-14-108.compute-1.amazonaws.com"); // For example, something like ec2-x-y-z.compute.amazonaws.com
+    factory.setPort(5672); // This is normally the default port that RabbitmQ grabs
+
+    try {
+      connection = factory.newConnection();
+
+    } catch (TimeoutException | IOException e) {
+      e.printStackTrace();
+    }
+  }
 
   private final LiftRideDao liftRideDao = new LiftRideDao();
 
@@ -28,7 +53,19 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     }
 
     LiftRide liftRide = new Gson().fromJson(request.getReader(), LiftRide.class);
-    liftRideDao.createLiftRide(liftRide);
+    String message = new Gson().toJson(liftRide);
+
+    // Instead of writing the entry into DB, it send it to a RMQ channel
+    // create a channel and use that to publish to RabbitMQ. Close it at end of the request.
+    Channel channel = connection.createChannel();
+    channel.basicQos(1);
+    channel.queueDeclare(QUEUE_NAME, true, false, false, null);
+    channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
+    try {
+      channel.close();
+    } catch (TimeoutException e) {
+      e.printStackTrace();
+    }
 
     response.setStatus(HttpServletResponse.SC_CREATED);
   }
