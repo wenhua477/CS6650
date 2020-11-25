@@ -2,6 +2,7 @@ import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.MessageProperties;
 import io.swagger.client.model.LiftRide;
 import io.swagger.client.model.SkierVertical;
 import java.io.IOException;
@@ -19,11 +20,11 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
   public void init() {
     // initialize the connection (this is the socket, so slow)
     ConnectionFactory factory = new ConnectionFactory();
-    factory.setUsername(System.getProperty("DB_USERNAME"));
-    factory.setPassword(System.getProperty("DB_PASSWORD"));
+    factory.setUsername(System.getProperty("RMQ_USERNAME"));
+    factory.setPassword(System.getProperty("RMQ_PASSWORD"));
     factory.setVirtualHost("/"); // I think this is the default "virtual host"
-    factory.setHost("ec2-52-91-14-108.compute-1.amazonaws.com"); // For example, something like ec2-x-y-z.compute.amazonaws.com
-    factory.setPort(5672); // This is normally the default port that RabbitmQ grabs
+    factory.setHost(System.getProperty("RMQ_HOST_ADDRESS")); // For example, something like ec2-x-y-z.compute.amazonaws.com
+    factory.setPort(Integer.parseInt(System.getProperty("RMQ_PORT"))); // This is normally the default port that RabbitmQ grabs
 
     try {
       connection = factory.newConnection();
@@ -60,7 +61,7 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
     Channel channel = connection.createChannel();
     channel.basicQos(1);
     channel.queueDeclare(QUEUE_NAME, true, false, false, null);
-    channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
+    channel.basicPublish("", QUEUE_NAME, MessageProperties.MINIMAL_PERSISTENT_BASIC, message.getBytes());
     try {
       channel.close();
     } catch (TimeoutException e) {
