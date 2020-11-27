@@ -1,6 +1,7 @@
-import org.apache.commons.dbcp2.*;
+import org.apache.commons.dbcp2.BasicDataSource;
 
 public class DBCPDataSource {
+
   private static BasicDataSource dataSource;
 
   // NEVER store sensitive information below in plain text!
@@ -18,7 +19,8 @@ public class DBCPDataSource {
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
     }
-    String url = String.format("jdbc:mysql://%s:%s/%s?serverTimezone=UTC", HOST_NAME, PORT, DATABASE);
+    String url = String
+        .format("jdbc:mysql://%s:%s/%s?serverTimezone=UTC", HOST_NAME, PORT, DATABASE);
     dataSource.setUrl(url);
     dataSource.setUsername(USERNAME);
     dataSource.setPassword(PASSWORD);
