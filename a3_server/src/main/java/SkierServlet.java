@@ -1,7 +1,5 @@
 import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.MessageProperties;
 import io.swagger.client.model.LiftRide;
 import io.swagger.client.model.SkierVertical;
@@ -10,31 +8,24 @@ import java.util.concurrent.TimeoutException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 
 public class SkierServlet extends javax.servlet.http.HttpServlet {
 
   private static final String QUEUE_NAME = "RabbitMQ for assignment 3";
 
-  private static Connection connection;
+  private final LiftRideDao liftRideDao = new LiftRideDao();
 
-  public void init() {
-    // initialize the connection (this is the socket, so slow)
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setUsername(System.getProperty("RMQ_USERNAME"));
-    factory.setPassword(System.getProperty("RMQ_PASSWORD"));
-    factory.setVirtualHost("/"); // I think this is the default "virtual host"
-    factory.setHost(System.getProperty("RMQ_HOST_ADDRESS")); // For example, something like ec2-x-y-z.compute.amazonaws.com
-    factory.setPort(Integer.parseInt(System.getProperty("RMQ_PORT"))); // This is normally the default port that RabbitmQ grabs
+  private ObjectPool<Channel> pool;
 
-    try {
-      connection = factory.newConnection();
 
-    } catch (TimeoutException | IOException e) {
-      e.printStackTrace();
+  public SkierServlet() {
+    pool = new GenericObjectPool<Channel>(new RMQChannelFactory());
+    if (System.getProperty("MaxTotalPoolSize") != null) {
+      ((GenericObjectPool<Channel>) pool).setMaxTotal(Integer.parseInt(System.getProperty("MaxTotalPoolSize")));
     }
   }
-
-  private final LiftRideDao liftRideDao = new LiftRideDao();
 
   protected void doPost(HttpServletRequest request,
       HttpServletResponse response)
@@ -58,13 +49,17 @@ public class SkierServlet extends javax.servlet.http.HttpServlet {
 
     // Instead of writing the entry into DB, it send it to a RMQ channel
     // create a channel and use that to publish to RabbitMQ. Close it at end of the request.
-    Channel channel = connection.createChannel();
-    channel.basicQos(1);
-    channel.queueDeclare(QUEUE_NAME, true, false, false, null);
-    channel.basicPublish("", QUEUE_NAME, MessageProperties.MINIMAL_PERSISTENT_BASIC, message.getBytes());
+    Channel channel = null;
     try {
-      channel.close();
-    } catch (TimeoutException e) {
+      channel = pool.borrowObject();
+      if (System.getProperty("IsPersistentPublish") != null && System
+          .getProperty("IsPersistentPublish").equals("true")) {
+        channel.basicPublish("", QUEUE_NAME, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes());
+      } else {
+        channel.basicPublish("", QUEUE_NAME, MessageProperties.TEXT_PLAIN, message.getBytes());
+      }
+      pool.returnObject(channel);
+    } catch (Exception e) {
       e.printStackTrace();
     }
 
